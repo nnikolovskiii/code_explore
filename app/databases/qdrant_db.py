@@ -41,7 +41,7 @@ class QdrantDatabase:
         value: str,
         entity: T,
         collection_name: Optional[str] = None,
-    ):
+    ) -> List[float]:
         collection_name = entity.__class__.__name__ if collection_name is None else collection_name
 
         if not await self.collection_exists(collection_name):
@@ -59,6 +59,8 @@ class QdrantDatabase:
                 ),
             ],
         )
+
+        return vector
 
     async def delete_all_collections(self):
         collections = await self.client.get_collections()
@@ -78,18 +80,22 @@ class QdrantDatabase:
         )
         return points[0]
 
-    async def search_embeddings(
+    async def retrieve_similar_points(
         self,
-        query_vector: List[float],
-        collection_name: str,
+        value: str,
+        class_type: TypingType[T],
         score_threshold: float,
         top_k: int,
         filter: Optional[Dict[str, Any]] = None,
+        collection_name: Optional[str] = None,
+
     ) -> List[types.ScoredPoint]:
+        collection_name = class_type.__name__ if collection_name is None else collection_name
         field_condition = QdrantDatabase._generate_filter(filter=filter)
+        vector = await embedd_content_with_model(value)
 
         return await self.client.search(
-            query_vector=query_vector,
+            query_vector=vector,
             score_threshold=score_threshold,
             collection_name=collection_name,
             limit=top_k,
