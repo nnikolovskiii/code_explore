@@ -26,10 +26,16 @@ async def chat_with_hf_inference(
         "messages": messages,
         "temperature": 0.5,
         "top_p": 0.8,
-        "stream": False
     }
 
-    output = client.chat_completion(**args)
-    return output.choices[0]["message"]["content"]
+    if stream:
+        args["stream"] = True
+        for stream_output in client.chat_completion(**args):
+            yield stream_output["choices"][0]["delta"]["content"]
+
+    else:
+        args["stream"] = False
+        output = client.chat_completion(**args)
+        yield output.choices[0]["message"]["content"]
 
 

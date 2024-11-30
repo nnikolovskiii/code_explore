@@ -16,7 +16,7 @@ class ChatResponse(BaseModel):
     llm_model: str
 
 
-def get_json_response(
+async def get_json_response(
         template: str,
         store_in_db: bool = True,
         list_name: str = "",
@@ -38,13 +38,13 @@ def get_json_response(
                 logging.warning("Chat not returning as expected.")
             raise Exception()
 
-        response = generic_chat(message=template, system_message=system_message)
+        response = await generic_chat(message=template, system_message=system_message)
 
         if store_in_db:
-            mdb.add_entry(entity=ChatResponse(message=template, response=response, llm_model=chat_model),
+            await mdb.add_entry(entity=ChatResponse(message=template, response=response, llm_model=chat_model),
                           metadata={"version": 1})
 
-        is_finished, json_data = trim_and_load_json(input_string=response, list_name=list_name)
+        is_finished, json_data = await trim_and_load_json(input_string=response, list_name=list_name)
         tries += 1
 
     load_dotenv()

@@ -18,7 +18,7 @@ class ChatModel(Enum):
     CUSTOM_API = "custom_api"
 
 
-def generic_chat(
+async def generic_chat(
         message: str,
         system_message: str = "You are a helpful AI assistant.",
         model:str = None
@@ -34,6 +34,6 @@ def generic_chat(
     elif chat_model == ChatModel.NIM.value:
         return chat_with_nim(message, system_message)
     elif chat_model == ChatModel.HF_INF.value:
-        return chat_with_hf_inference(message, system_message, model)
+        return await chat_with_hf_inference(message, system_message, model)
     elif chat_model == ChatModel.CUSTOM_API.value:
         return chat_with_custom_api(message)

@@ -3,7 +3,7 @@ from typing import Tuple, Any
 import re
 
 
-def trim_and_load_json(input_string: str, list_name: str = "") -> Tuple[bool, Any]:
+async def trim_and_load_json(input_string: str, list_name: str = "") -> Tuple[bool, Any]:
     start = input_string.find("{")
     end = input_string.rfind("}") + 1
 

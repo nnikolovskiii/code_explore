@@ -14,7 +14,6 @@ from pymongo.errors import DuplicateKeyError, ConnectionFailure
 class MongoEntry(BaseModel):
     id: Optional[str] = None
 
-
 T = TypeVar('T', bound=MongoEntry)
 
 
@@ -36,7 +35,7 @@ class MongoDBDatabase:
 
     async def add_entry(
             self,
-            entity: TypingType[T],
+            entity: T,
             collection_name: Optional[str] = None,
             metadata: Optional[Dict[str, Any]] = None
     ) -> str:

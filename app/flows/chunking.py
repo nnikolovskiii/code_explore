@@ -3,29 +3,29 @@ from typing import List, Any, Dict
 
 from app.databases.mongo.db import MongoDBDatabase
 from app.flows.preprocess import get_files_recursively, read_file
-from transformers import AutoTokenizer
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from tqdm import tqdm
 
 from app.llm_flows.chunk_transform import summarize_chunk, short_description
-from app.scrape_sites.extract_contents import extract_contents
+from app.llm_flows.extract_contents import extract_contents
 
 
-def chunk(entries:List[Dict[str, Any]], key:str, collection_name:str):
+async def chunk(entries:List[Dict[str, Any]], key:str, collection_name:str):
     mdb = MongoDBDatabase()
-    tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-72B-Instruct")
-
-    def token_length(text):
-        return len(tokenizer.encode(text))
+    # tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-72B-Instruct")
+    #
+    # def token_length(text):
+    #     return len(tokenizer.encode(text))
 
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=30000,
         chunk_overlap=200,
-        length_function=token_length,
+        length_function=len,
     )
 
     for entry in tqdm(entries):
         content = entry[key]
+        text_splitter.split_text(content)
         tokenized_content = tokenizer.encode(content)
         num_tokens = len(tokenized_content)
         entity = deepcopy(entry)

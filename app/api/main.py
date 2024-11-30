@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 import logging
-from app.api.routes import preprocess, chat, websocket, test
+from app.api.routes import preprocess, chat, websocket, test, collection_data
 from app.databases.mongo.singleton import get_db
 
 
@@ -39,6 +39,8 @@ app.include_router(preprocess.router, prefix="/preprocess", tags=["preprocess"])
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
 app.include_router(websocket.router, prefix="/websocket", tags=["websocket"])
 app.include_router(test.router, prefix="/test", tags=["test"])
+app.include_router(collection_data.router, prefix="/collection_data", tags=["collection_data"])
+
 
 # if __name__ == "__main__":
 #     uvicorn.run(app, host="0.0.0.0", port=8000)
