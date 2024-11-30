@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from dotenv import load_dotenv
 
-from app.databases.mongo.db import MongoDBDatabase
+from app.databases.mongo_db import MongoDBDatabase
 from app.llms.generic_chat import generic_chat
 from app.utils.json_extraction import trim_and_load_json
 

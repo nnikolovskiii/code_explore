@@ -1,5 +1,5 @@
-from fastapi import FastAPI, HTTPException, APIRouter
-from app.databases.mongo.db import MongoDBDatabase
+from fastapi import HTTPException, APIRouter
+from app.databases.mongo_db import MongoDBDatabase
 from git import Repo, GitCommandError
 import os
 import logging

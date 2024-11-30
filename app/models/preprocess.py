@@ -1,6 +1,4 @@
-from bson import ObjectId
-
-from app.databases.mongo.db import MongoEntry
+from app.databases.mongo_db import MongoEntry
 
 class Content(MongoEntry):
     link: str
@@ -12,6 +10,11 @@ class DocumentChunk(MongoEntry):
     start_index: int
     end_index: int
     order: int
+
+class FinalDocumentChunk(MongoEntry):
+    chunk_id: str
+    content: str
+    category: str
 
 class Context(MongoEntry):
     chunk_id: str

@@ -1,4 +1,4 @@
-from app.databases.mongo.db import MongoDBDatabase
+from app.databases.mongo_db import MongoDBDatabase
 
 code_extensions = {
   "general_programming_languages": [

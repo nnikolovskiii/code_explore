@@ -1,18 +1,18 @@
 from http import HTTPStatus
 from typing import Annotated
 
-from fastapi import HTTPException, APIRouter, Body, Depends
+from fastapi import HTTPException, APIRouter, Depends
 
 from app.chat.models import Message, Chat
 import logging
 
-from app.databases.mongo.singleton import get_db
+from app.databases.singletons import get_mongo_db
 
 logging.basicConfig(level=logging.DEBUG)
 
 router = APIRouter()
 
-db_dep = Annotated[dict, Depends(get_db)]
+db_dep = Annotated[dict, Depends(get_mongo_db)]
 
 @router.post("/add_message/", status_code=HTTPStatus.CREATED)
 async def add_message(message:Message, mdb: db_dep):

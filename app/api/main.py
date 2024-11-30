@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 import logging
 from app.api.routes import preprocess, chat, websocket, test, collection_data
-from app.databases.mongo.singleton import get_db
+from app.databases.singletons import get_mongo_db
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -11,9 +11,9 @@ logging.getLogger('pymongo').setLevel(logging.WARNING)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await get_db()
+    await get_mongo_db()
     yield
-    mdb = await get_db()
+    mdb = await get_mongo_db()
     mdb.client.close()
 
 app = FastAPI(lifespan=lifespan)

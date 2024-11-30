@@ -5,7 +5,7 @@ import json
 from typing import List
 
 
-def embedd_content(
+async def embedd_content_with_model(
         content: str
 ) -> List[float]:
     load_dotenv()

@@ -1,6 +1,6 @@
-from app.databases.mongo.db import MongoDBDatabase
-from app.flows.preprocess import get_short_description
-from app.llm_flows.short_description import create_short_description
+from app.databases.mongo_db import MongoDBDatabase
+from app.code_processing.pre_process.file_utils import get_short_description
+from app.code_processing.pre_process.short_description import create_short_description
 from app.llms.generic_chat import generic_chat
 
 

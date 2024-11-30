@@ -1,7 +1,6 @@
-import asyncio
 from urllib.parse import urljoin
 import html2text
-from app.databases.mongo.db import MongoDBDatabase
+from app.databases.mongo_db import MongoDBDatabase
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 from markdownify import markdownify as md

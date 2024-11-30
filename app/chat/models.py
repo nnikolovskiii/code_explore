@@ -1,6 +1,6 @@
 import asyncio
 from datetime import datetime
-from app.databases.mongo.db import MongoEntry, MongoDBDatabase
+from app.databases.mongo_db import MongoEntry, MongoDBDatabase
 
 
 class Message(MongoEntry):

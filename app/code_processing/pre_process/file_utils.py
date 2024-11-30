@@ -14,14 +14,6 @@ def read_file(file_path):
         print(f"An error occurred: {e}")
         return None
 
-
-
-# file_path = '/home/nnikolovskii/dev/fastapi/README.md'
-# markdown_content = read_markdown_file(file_path)
-# if markdown_content:
-#     print(markdown_content)
-#
-
 import os
 
 def get_files_recursively(folder_name):
@@ -46,12 +38,6 @@ def get_files_extensions(folder_name):
                     extensions.add(li[-1])
 
     return extensions
-
-# # # Example usage
-# folder_name = '/home/nnikolovskii/dev/react'
-# file_paths = get_files_recursively(folder_name)
-# for path in file_paths:
-#     print(path)
 
 def get_short_description(folder_name):
     file_path = os.path.join(folder_name, "README.md")

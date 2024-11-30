@@ -1,13 +1,8 @@
-import asyncio
-
 from bson import ObjectId
-from jinja2.compiler import generate
 from tqdm import tqdm
-from app.databases.mongo.db import MongoDBDatabase
-from app.databases.mongo.singleton import get_db
-from app.llm_flows.json_response import get_json_response
-from app.llms.generic_chat import generic_chat
-from app.models.preprocess import Content, DocumentChunk, Context, Category
+from app.databases.singletons import get_mongo_db
+from app.llms.json_response import get_json_response
+from app.models.preprocess import Content, DocumentChunk, Context, Category, FinalDocumentChunk
 
 
 def add_context_template(
@@ -65,7 +60,7 @@ async def add_context(
     chunk: DocumentChunk,
     context_len: int
 ):
-    mdb = await get_db()
+    mdb = await get_mongo_db()
     content = await mdb.get_entity(ObjectId(str(chunk.content_id)),Content)
     content_len = len(content.content)
 
@@ -91,13 +86,13 @@ async def add_context(
         ))
 
 async def add_context_flow():
-    mdb = await get_db()
+    mdb = await get_mongo_db()
     await mdb.delete_collection("Context")
     await mdb.delete_collection("Category")
 
     chunks = await mdb.get_entries(DocumentChunk)
 
-    for chunk in tqdm(chunks):
+    for chunk in tqdm(chunks[2553:]):
         try:
             await add_context(chunk, 8000)
         except Exception as e:
@@ -105,5 +100,26 @@ async def add_context_flow():
 
 
 
+async def create_final_chunks():
+    mdb = await get_mongo_db()
+    chunks = await mdb.get_entries(DocumentChunk)
+    contexts = await mdb.get_entries(Context)
+    contexts_dict = {context.chunk_id: context.context for context in contexts}
+    categories = await mdb.get_entries(Category)
+    categories_dict = {category.chunk_id: category.category for category in categories}
 
-asyncio.run(add_context_flow())
+    count=0
+    for chunk in tqdm(chunks):
+        new_dict = {"chunk_id": chunk.id, "content": chunk.content}
+
+        if chunk.id in contexts_dict:
+            new_dict["content"] = contexts_dict[chunk.id] + new_dict["content"]
+            count+=1
+
+        new_dict["category"] = categories_dict[chunk.id]
+        final_chunk = FinalDocumentChunk(**new_dict)
+        await mdb.add_entry(final_chunk)
+
+    print(count/len(chunks)*100)
+
+# asyncio.run(add_context_flow())

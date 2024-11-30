@@ -1,4 +1,4 @@
-from app.databases.mongo.db import MongoEntry
+from app.databases.mongo_db import MongoEntry
 
 
 class GitUrl(MongoEntry):
