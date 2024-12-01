@@ -80,7 +80,7 @@ class QdrantDatabase:
         )
         return points[0]
 
-    async def retrieve_similar_points(
+    async def retrieve_similar_entries(
         self,
         value: str,
         class_type: TypingType[T],
@@ -89,18 +89,20 @@ class QdrantDatabase:
         filter: Optional[Dict[str, Any]] = None,
         collection_name: Optional[str] = None,
 
-    ) -> List[types.ScoredPoint]:
+    ) -> List[T]:
         collection_name = class_type.__name__ if collection_name is None else collection_name
         field_condition = QdrantDatabase._generate_filter(filter=filter)
         vector = await embedd_content_with_model(value)
 
-        return await self.client.search(
+        points =  await self.client.search(
             query_vector=vector,
             score_threshold=score_threshold,
             collection_name=collection_name,
             limit=top_k,
             query_filter=field_condition,
         )
+
+        return [class_type(**point.payload) for point in points]
 
     async def get_all_points(
         self,

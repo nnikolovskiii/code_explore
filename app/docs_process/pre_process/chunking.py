@@ -1,3 +1,5 @@
+import asyncio
+
 from app.databases.mongo_db import MongoDBDatabase
 from langchain_text_splitters import Language
 from tqdm import tqdm

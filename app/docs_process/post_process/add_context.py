@@ -1,3 +1,5 @@
+import asyncio
+
 from bson import ObjectId
 from tqdm import tqdm
 from app.databases.singletons import get_mongo_db
@@ -61,7 +63,7 @@ async def add_context(
     context_len: int
 ):
     mdb = await get_mongo_db()
-    content = await mdb.get_entity(ObjectId(str(chunk.content_id)),Content)
+    content = await mdb.get_entity(ObjectId(chunk.content_id),Content)
     content_len = len(content.content)
 
     if len(content.content) != chunk.end_index and chunk.start_index == 0:
@@ -87,39 +89,16 @@ async def add_context(
 
 async def add_context_flow():
     mdb = await get_mongo_db()
-    await mdb.delete_collection("Context")
-    await mdb.delete_collection("Category")
 
     chunks = await mdb.get_entries(DocumentChunk)
 
-    for chunk in tqdm(chunks[2553:]):
+    for chunk in tqdm(chunks):
         try:
             await add_context(chunk, 8000)
         except Exception as e:
             print(e)
 
 
-
-async def create_final_chunks():
-    mdb = await get_mongo_db()
-    chunks = await mdb.get_entries(DocumentChunk)
-    contexts = await mdb.get_entries(Context)
-    contexts_dict = {context.chunk_id: context.context for context in contexts}
-    categories = await mdb.get_entries(Category)
-    categories_dict = {category.chunk_id: category.category for category in categories}
-
-    count=0
-    for chunk in tqdm(chunks):
-        new_dict = {"chunk_id": chunk.id, "content": chunk.content}
-
-        if chunk.id in contexts_dict:
-            new_dict["content"] = contexts_dict[chunk.id] + new_dict["content"]
-            count+=1
-
-        new_dict["category"] = categories_dict[chunk.id]
-        final_chunk = FinalDocumentChunk(**new_dict)
-        await mdb.add_entry(final_chunk)
-
-    print(count/len(chunks)*100)
-
 # asyncio.run(add_context_flow())
+# asyncio.run(create_final_chunks())
+# asyncio.run(embedd_chunks())

@@ -15,6 +15,7 @@ class FinalDocumentChunk(MongoEntry):
     chunk_id: str
     content: str
     category: str
+    link: str
 
 class Context(MongoEntry):
     chunk_id: str
