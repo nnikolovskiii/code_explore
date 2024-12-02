@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any, List, Literal, Optional, Union, Tuple
 
-from app.models.base_splitter import TextSplitter, Language
+from app.models.splitters.base_splitter import TextSplitter, Language
 
 
 class CharacterTextSplitter(TextSplitter):

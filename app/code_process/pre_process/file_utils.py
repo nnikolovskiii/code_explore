@@ -1,5 +1,6 @@
+import os
 
-def read_file(file_path):
+def _read_file(file_path) -> str | None:
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
             content = file.read()
@@ -14,9 +15,7 @@ def read_file(file_path):
         print(f"An error occurred: {e}")
         return None
 
-import os
-
-def get_files_recursively(folder_name):
+def _get_all_file_paths(folder_name):
     file_paths = []
     for root, dirs, files in os.walk(folder_name):
         for file in files:
@@ -27,25 +26,8 @@ def get_files_recursively(folder_name):
     return file_paths
 
 
-def get_files_extensions(folder_name):
-    extensions = set()
-    for root, dirs, files in os.walk(folder_name):
-        for file in files:
-            file_path = os.path.join(root, file)
-            if ".git" not in file_path:
-                li = file_path.split(".")
-                if len(li) > 1:
-                    extensions.add(li[-1])
-
-    return extensions
-
-def get_short_description(folder_name):
-    file_path = os.path.join(folder_name, "README.md")
-
-    if os.path.exists(file_path):
-        with open(file_path, 'r', encoding='utf-8') as file:
-            content = file.read()
-            return content
-    else:
-        return "README.md file does not exist."
-
+def _get_file_extension(file_path) -> str | None:
+    li = file_path.split(".")
+    if len(li) > 1:
+        return "." + li[-1]
+    return None

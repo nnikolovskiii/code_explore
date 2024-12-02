@@ -3,7 +3,7 @@ import asyncio
 from bson import ObjectId
 
 from app.databases.singletons import get_mongo_db, get_qdrant_db
-from app.models.preprocess import FinalDocumentChunk, DocumentChunk, Context, Category, Content
+from app.models.docs import FinalDocumentChunk, DocumentChunk, Context, Category, Content
 from tqdm import tqdm
 
 async def create_final_chunks():

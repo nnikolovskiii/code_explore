@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from markdownify import markdownify as md
 import requests
 
-from app.models.preprocess import Content
+from app.models.docs import Content
 
 
 async def _get_beautiful_soup(url: str) -> BeautifulSoup:

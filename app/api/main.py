@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 import logging
-from app.api.routes import preprocess, chat, websocket, test, collection_data
+from app.api.routes import code, chat, websocket, test, collection_data
 from app.databases.singletons import get_mongo_db
 
 

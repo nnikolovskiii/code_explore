@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from app.llms.utils import _get_messages_template
 
 
-async def chat_with_hf_inference(
+async def chat_with_hf_inference_stream(
         message: str,
         system_message: str,
         history: List[Dict[str, str]] = None,
@@ -26,6 +26,7 @@ async def chat_with_hf_inference(
         "messages": messages,
         "temperature": 0.5,
         "top_p": 0.8,
+        "stream": True
     }
 
     if stream:

@@ -1,10 +1,8 @@
-import asyncio
-
 from app.databases.mongo_db import MongoDBDatabase
 from langchain_text_splitters import Language
 from tqdm import tqdm
-from app.models.preprocess import DocumentChunk, Content
-from app.models.text_splitters import TextSplitter
+from app.models.docs import DocumentChunk, Content
+from app.models.splitters.text_splitters import TextSplitter
 
 
 async def chunk_docs():

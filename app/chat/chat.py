@@ -5,7 +5,8 @@ from torch.utils.hipify.hipify_python import value
 
 from app.databases.singletons import get_qdrant_db
 from app.llms.generic_chat import generic_chat
-from app.models.preprocess import FinalDocumentChunk
+from app.models.code import FinalCodeChunk
+from app.models.docs import FinalDocumentChunk
 
 
 def _get_chunk_tags(
@@ -35,12 +36,12 @@ Your job is to provide a correct and detailed answer to the question. Break your
 
 async def retrieve_relevant_chunks(
         question: str
-) -> List[FinalDocumentChunk]:
+) -> List[FinalCodeChunk]:
     qdb = await get_qdrant_db()
 
     return await qdb.retrieve_similar_entries(
         value=question,
-        class_type=FinalDocumentChunk,
+        class_type=FinalCodeChunk,
         score_threshold=0.0,
         top_k=15,
     )
@@ -50,6 +51,7 @@ async def chat(question: str)->str:
     chunk_contents = [chunk.content for chunk in relevant_chunks]
     template = chat_template(chunk_contents, question)
     response = await generic_chat(message=template, system_message="You are a expert code AI assistant which provides factually correct, detailed and step-by-step answers for users questions.")
+    print(response)
     return response
 
-asyncio.run(retrieve_relevant_chunks("What is Docker?"))
+asyncio.run(chat("How do i make dependency injection using fastapi?"))

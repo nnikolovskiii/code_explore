@@ -4,7 +4,7 @@ from bson import ObjectId
 from tqdm import tqdm
 from app.databases.singletons import get_mongo_db
 from app.llms.json_response import get_json_response
-from app.models.preprocess import Content, DocumentChunk, Context, Category, FinalDocumentChunk
+from app.models.docs import Content, DocumentChunk, Context, Category, FinalDocumentChunk
 
 
 def add_context_template(
