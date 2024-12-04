@@ -35,7 +35,7 @@ app.add_middleware(
 
 
 # routes
-app.include_router(preprocess.router, prefix="/preprocess", tags=["preprocess"])
+app.include_router(code.router, prefix="/code", tags=["code"])
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
 app.include_router(websocket.router, prefix="/websocket", tags=["websocket"])
 app.include_router(test.router, prefix="/test", tags=["test"])

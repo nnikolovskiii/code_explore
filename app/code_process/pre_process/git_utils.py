@@ -12,13 +12,7 @@ async def clone_git_repo(
         mdb: MongoDBDatabase,
         git_url: str,
         override: bool
-) -> Tuple[bool, str]:
-    if not override:
-        urls = await mdb.get_entries(GitUrl, doc_filter={"url": git_url})
-
-        if len(urls) > 0:
-            return True, "The git repo already exists."
-
+) -> str | None:
     folder_name = git_url.split(".git")[0].split("/")[-1]
     load_dotenv()
     root_git_path = os.getenv("ROOT_GIT_PATH")
@@ -33,15 +27,11 @@ async def clone_git_repo(
         Repo.clone_from(git_url, clone_dir)
         logging.debug(f"Repository cloned successfully to {clone_dir}")
 
-        await mdb.add_entry(GitUrl(
-            url=git_url,
-            path=clone_dir,
-        ))
-
-        return True, "Successfully cloned the git repo."
+        return clone_dir
     except GitCommandError as e:
         logging.error(f"Git command error: {e}")
-        return False, f"Invalid git URL or repository cannot be cloned: {e}"
+        return None
     except Exception as e:
         logging.error(f"An unexpected error occurred: {e}")
-        return False, f"An unexpected error occurred: {e}"
+        return None
+

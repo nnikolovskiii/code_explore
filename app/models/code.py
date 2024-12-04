@@ -1,25 +1,33 @@
 from app.databases.mongo_db import MongoEntry
 
+class StoredC(MongoEntry):
+    url: str
+
 
 class GitUrl(MongoEntry):
     url: str
     path: str
 
 class CodeContent(MongoEntry):
-    file_path: str
+    url: str
+    file_name: str
+    folder_path: str
     content: str
     extension: str
 
 class CodeChunk(MongoEntry):
+    url: str
+    file_path: str
     content_id: str
     content: str
     start_index: int
     end_index: int
     order: int
-    file_path: str
     code_len: int
 
 class FinalCodeChunk(MongoEntry):
-    chunk_id: str
-    content: str
+    url: str
     file_path: str
+    content: str
+    order: int
+    code_len: int
