@@ -200,3 +200,14 @@ class MongoDBDatabase:
         unique_values = await collection.distinct(column)
 
         return set(unique_values)
+
+    async def delete_entries(
+            self,
+            class_type: TypingType[T],
+            doc_filter: Dict[str, Any] = None,
+            collection_name: Optional[str] = None,
+    ) -> int:
+        collection_name = class_type.__name__ if collection_name is None else collection_name
+        collection = self.db[collection_name]
+        result = await collection.delete_many(doc_filter or {})
+        return result.deleted_count

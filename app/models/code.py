@@ -1,12 +1,7 @@
 from app.databases.mongo_db import MongoEntry
 
-class StoredC(MongoEntry):
-    url: str
-
-
 class GitUrl(MongoEntry):
     url: str
-    path: str
 
 class CodeContent(MongoEntry):
     url: str
