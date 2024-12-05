@@ -9,10 +9,10 @@ class CodeContent(MongoEntry):
     folder_path: str
     content: str
     extension: str
+    embedded: bool = False
 
 class CodeChunk(MongoEntry):
     url: str
-    file_path: str
     content_id: str
     content: str
     start_index: int
@@ -26,3 +26,8 @@ class FinalCodeChunk(MongoEntry):
     content: str
     order: int
     code_len: int
+
+class Folder(MongoEntry):
+    prev_folder: str
+    next_folder: str
+    git_url: str

@@ -74,21 +74,12 @@ class MongoDBDatabase:
     ) -> List[T]:
         collection_name = class_type.__name__ if collection_name is None else collection_name
         collection = self.db[collection_name]
-        documents = await collection.find(doc_filter or {}).to_list(None)
 
-        class_fields = class_type.model_fields.keys()
-
+        cursor = collection.find(doc_filter or {})
         results = []
-        for doc in documents:
-            entry_attr = {}
-
-            for field in class_fields:
-                if field == "id":
-                    entry_attr[field] = str(doc["_id"])
-                else:
-                    entry_attr[field] = doc.get(field)
-
-            entry = class_type(**entry_attr)
+        async for doc in cursor:
+            doc['id'] = str(doc.pop('_id'))
+            entry = class_type.model_validate(doc)
             results.append(entry)
 
         return results
@@ -151,7 +142,7 @@ class MongoDBDatabase:
 
         return None
 
-    async def update_entity(
+    async def update_entry(
             self,
             entity: MongoEntry,
             collection_name: Optional[str] = None,
@@ -161,6 +152,8 @@ class MongoDBDatabase:
         collection = self.db[collection_name]
 
         entity_dict = entity.model_dump()
+        if "id" in entity_dict:
+            entity_dict.pop("id")
 
         if update:
             entity_dict.update(update)
