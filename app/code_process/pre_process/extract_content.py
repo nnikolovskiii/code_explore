@@ -1,6 +1,8 @@
 import asyncio
 import os
+from typing import List
 
+from bson import ObjectId
 from datasets import tqdm
 from dotenv import load_dotenv
 
@@ -62,11 +64,12 @@ async def extract_contents(folder_path: str, git_url: str):
         )
         await mdb.add_entry(folder)
 
-async def chunk_code(git_url: str, mdb: MongoDBDatabase):
-    code_contents = await mdb.get_entries(CodeContent, doc_filter={"url": git_url})
-    files = await mdb.get_entries(Folder, doc_filter={"url": git_url, "is_folder": False})
-    files_dict = {file.next:file for file in files}
 
+async def chunk_code(
+        mdb: MongoDBDatabase,
+        git_url: str,
+        code_contents: List[CodeContent],
+):
     text_splitter = TextSplitter(
         language=Language.PYTHON,
         chunk_size=1000,
@@ -89,9 +92,27 @@ async def chunk_code(git_url: str, mdb: MongoDBDatabase):
                     code_len=len(texts)
                 )
                 await mdb.add_entry(code_chunk)
-            content.embedded = True
-            await mdb.update_entry(content)
 
-        file = files_dict[content.file_path]
-        file.embedded = True
-        await mdb.update_entry(file)
+
+async def chunk_all_code(
+        mdb: MongoDBDatabase,
+        git_url: str,
+):
+    contents = await mdb.get_entries(CodeContent, doc_filter={"url": git_url})
+    await chunk_code(mdb, git_url, contents)
+
+async def chunk_files(
+        mdb: MongoDBDatabase,
+        file_paths: List[str],
+        git_url: str,
+):
+    contents = []
+    for file_path in file_paths:
+        content = await mdb.get_entry_from_col_value(
+            column_name="file_path",
+            column_value=file_path,
+            class_type = CodeContent
+        )
+        print(content)
+        contents.append(content)
+    await chunk_code(mdb, git_url, contents)

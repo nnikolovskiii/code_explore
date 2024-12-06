@@ -132,12 +132,35 @@ class MongoDBDatabase:
         collection = self.db[collection_name]
 
         document = await collection.find_one({"_id": id})
-        if document:
-            class_fields = class_type.model_fields.keys()
-            filtered_doc = {key: value for key, value in document.items() if key in class_fields}
-            filtered_doc["_id"] = id
 
-            instance = class_type(**filtered_doc)
+        if document:
+            attr_dict = {key: value for key, value in document.items()}
+            attr_dict["id"] = str(id)
+
+            instance = class_type(**attr_dict)
+            return instance
+
+        return None
+
+    async def get_entry_from_col_value(
+            self,
+            column_name: str,
+            column_value: str,
+            class_type: TypingType[T],
+            collection_name: Optional[str] = None,
+    ) -> Optional[T]:
+        collection_name = class_type.__name__ if collection_name is None else collection_name
+        collection = self.db[collection_name]
+
+        query = {column_name: column_value}
+
+        document = await collection.find_one(query)
+
+        if document:
+            attr_dict = {key: value for key, value in document.items()}
+            attr_dict["id"] = str(id)
+
+            instance = class_type(**attr_dict)
             return instance
 
         return None

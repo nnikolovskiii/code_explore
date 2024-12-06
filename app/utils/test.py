@@ -2,6 +2,8 @@ from pydantic import BaseModel
 
 
 class Counter(BaseModel):
-    counter: int = 0
+    lol1: str
 
-counter = Counter()
+
+dict = {"lol1": "lol", "lol2": "lol"}
+print(Counter(**dict))
