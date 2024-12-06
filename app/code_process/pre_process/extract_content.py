@@ -38,21 +38,34 @@ async def extract_contents(folder_path: str, git_url: str):
             if extension:
                 await mdb.add_entry(CodeContent(
                     url=git_url,
-                    folder_path=folder_path,
-                    file_name=file_name,
+                    file_path=no_root_path,
                     content= content,
                     extension= extension
+                ))
+
+                await mdb.add_entry(Folder(
+                    git_url=git_url,
+                    prev=folder_path,
+                    next=no_root_path,
+                    is_folder=False
                 ))
 
         except Exception as e:
             print(e)
 
     for prev_folder, next_folder in s:
-        folder = Folder(git_url=git_url, prev_folder=prev_folder, next_folder=next_folder)
+        folder = Folder(
+            git_url=git_url,
+            prev=prev_folder,
+            next=next_folder,
+            is_folder=True
+        )
         await mdb.add_entry(folder)
 
 async def chunk_code(git_url: str, mdb: MongoDBDatabase):
     code_contents = await mdb.get_entries(CodeContent, doc_filter={"url": git_url})
+    files = await mdb.get_entries(Folder, doc_filter={"url": git_url, "is_folder": False})
+    files_dict = {file.next:file for file in files}
 
     text_splitter = TextSplitter(
         language=Language.PYTHON,
@@ -78,3 +91,7 @@ async def chunk_code(git_url: str, mdb: MongoDBDatabase):
                 await mdb.add_entry(code_chunk)
             content.embedded = True
             await mdb.update_entry(content)
+
+        file = files_dict[content.file_path]
+        file.embedded = True
+        await mdb.update_entry(file)

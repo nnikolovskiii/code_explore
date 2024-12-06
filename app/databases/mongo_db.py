@@ -122,7 +122,7 @@ class MongoDBDatabase:
 
         return [doc["_id"] for doc in ids_cursor]
 
-    async def get_entity(
+    async def get_entry(
             self,
             id: ObjectId,
             class_type: TypingType[T],

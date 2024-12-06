@@ -48,8 +48,7 @@ async def chunk_code_library(git_url: str, mdb: mdb_dep):
 
 @router.get("/get_files/")
 async def get_files(prev_folder: str, mdb: mdb_dep):
-    contents = await mdb.get_entries(CodeContent, doc_filter={"folder_path": prev_folder})
-    folders = await mdb.get_entries(Folder, doc_filter={"prev_folder": prev_folder})
+    folders = await mdb.get_entries(Folder, doc_filter={"prev": prev_folder})
 
-    return {"folders": folders, "contents": contents}
+    return {"folders": folders,}
 

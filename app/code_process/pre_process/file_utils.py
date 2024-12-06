@@ -1,19 +1,9 @@
 import os
 
 def _read_file(file_path) -> str | None:
-    try:
-        with open(file_path, 'r', encoding='utf-8') as file:
-            content = file.read()
-        return content
-    except FileNotFoundError:
-        print(f"File {file_path} not found.")
-        return None
-    except UnicodeDecodeError:
-        print(f"Could not read {file_path} as a text file. It might be corrupted or have a different encoding.")
-        return None
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
+    with open(file_path, 'r', encoding='utf-8') as file:
+        content = file.read()
+    return content
 
 def _get_all_file_paths(folder_name):
     file_paths = []

@@ -5,8 +5,7 @@ class GitUrl(MongoEntry):
 
 class CodeContent(MongoEntry):
     url: str
-    file_name: str
-    folder_path: str
+    file_path: str
     content: str
     extension: str
     embedded: bool = False
@@ -28,6 +27,8 @@ class FinalCodeChunk(MongoEntry):
     code_len: int
 
 class Folder(MongoEntry):
-    prev_folder: str
-    next_folder: str
+    prev: str
+    next: str
+    is_folder: bool
     git_url: str
+    embedded: bool = False
