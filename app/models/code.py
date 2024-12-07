@@ -12,6 +12,7 @@ class CodeContent(MongoEntry):
 
 class CodeChunk(MongoEntry):
     url: str
+    file_path: str
     content_id: str
     content: str
     start_index: int
@@ -20,16 +21,10 @@ class CodeChunk(MongoEntry):
     code_len: int
 
 class CodeContext(MongoEntry):
-    url:str
-    chunk_id: str
-    context: str
-
-class FinalCodeChunk(MongoEntry):
     url: str
     file_path: str
-    content: str
-    order: int
-    code_len: int
+    chunk_id: str
+    context: str
 
 class Folder(MongoEntry):
     prev: str

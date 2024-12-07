@@ -84,6 +84,7 @@ async def chunk_code(
             for i, text in enumerate(texts):
                 code_chunk = CodeChunk(
                     url=content.url,
+                    file_path=content.file_path,
                     content_id=content.id,
                     content=text[0],
                     start_index=text[1][0],

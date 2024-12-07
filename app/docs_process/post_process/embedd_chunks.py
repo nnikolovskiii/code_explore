@@ -12,7 +12,7 @@ async def create_final_chunks():
 
     url_dict = {}
     for chunk in chunks:
-        content = await mdb.get_entity(id = ObjectId(chunk.content_id), class_type=Content)
+        content = await mdb.get_entry(id = ObjectId(chunk.content_id), class_type=Content)
         url_dict[chunk.id] = content.link
 
     contexts = await mdb.get_entries(Context)
@@ -49,5 +49,3 @@ async def embedd_chunks():
             value=chunk.content,
             entity=chunk
         )
-
-asyncio.run(embedd_chunks())
