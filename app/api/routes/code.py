@@ -36,6 +36,7 @@ async def extract_library(git_url: str,override: bool, mdb: mdb_dep, qdb: qdb_de
             await mdb.delete_entries(GitUrl, doc_filter={"url": git_url})
             await mdb.delete_entries(CodeContext, doc_filter={"url": git_url})
             await mdb.delete_entries(Folder, doc_filter={"url": git_url})
+            await qdb.delete_records(collection_name="CodeChunk", doc_filter={"url": git_url})
 
         urls = await mdb.get_entries(GitUrl, doc_filter={"url": git_url})
         if len(urls) == 0:

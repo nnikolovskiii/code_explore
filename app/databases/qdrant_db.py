@@ -70,6 +70,22 @@ class QdrantDatabase:
     async def delete_collection(self, collection_name: str):
         await self.client.delete_collection(collection_name=collection_name)
 
+    async def delete_records(self, collection_name: str, doc_filter: Dict[str, Any]):
+        if not doc_filter:
+            raise ValueError("Filter cannot be empty to prevent accidental deletion of all records.")
+
+
+        filter_obj = QdrantDatabase._generate_filter(doc_filter)
+        try:
+            await self.client.delete(
+                collection_name=collection_name,
+                points_selector=models.FilterSelector(
+                    filter=filter_obj
+                )
+            )
+        except Exception as e:
+            raise RuntimeError(f"Failed to delete records: {e}")
+
     async def retrieve_point(
         self, collection_name: str, point_id: str
     ) -> types.Record:
