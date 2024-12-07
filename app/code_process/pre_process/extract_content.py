@@ -113,6 +113,5 @@ async def chunk_files(
             column_value=file_path,
             class_type = CodeContent
         )
-        print(content)
         contents.append(content)
     await chunk_code(mdb, git_url, contents)

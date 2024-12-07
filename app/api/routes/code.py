@@ -3,6 +3,7 @@ from typing import Annotated, List
 from fastapi import HTTPException, APIRouter, Depends
 from pydantic import BaseModel
 
+from app.code_process.post_process.add_context import add_context_files, add_context_all
 from app.code_process.pre_process.extract_content import extract_contents, chunk_code, chunk_files, chunk_all_code
 from app.code_process.pre_process.git_utils import clone_git_repo
 from app.databases.mongo_db import MongoDBDatabase
@@ -11,7 +12,7 @@ import logging
 import shutil
 
 from app.databases.singletons import get_mongo_db
-from app.models.code import CodeContent, CodeChunk, FinalCodeChunk, GitUrl, Folder
+from app.models.code import CodeContent, CodeChunk, FinalCodeChunk, GitUrl, Folder, CodeContext
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -30,6 +31,7 @@ async def extract_library(git_url: str,override: bool, mdb: mdb_dep):
             await mdb.delete_entries(CodeChunk, doc_filter={"url": git_url})
             await mdb.delete_entries(FinalCodeChunk, doc_filter={"url": git_url})
             await mdb.delete_entries(GitUrl, doc_filter={"url": git_url})
+            await mdb.delete_entries(CodeContext, doc_filter={"url": git_url})
             await mdb.delete_entries(Folder, doc_filter={"url": git_url})
 
         urls = await mdb.get_entries(GitUrl, doc_filter={"url": git_url})
@@ -49,10 +51,12 @@ async def extract_library(git_url: str,override: bool, mdb: mdb_dep):
 @router.get("/chunk_all_code/")
 async def _chunk_all_code(git_url: str, mdb: mdb_dep):
     await chunk_all_code(git_url=git_url, mdb=mdb)
+    await add_context_all(mdb=mdb, git_url=git_url)
 
 @router.post("/chunk_files/")
 async def _chunk_files(file_dto: FileDto, git_url: str, mdb: mdb_dep):
     await chunk_files(file_paths=file_dto.file_paths, git_url=git_url, mdb=mdb)
+    await add_context_files(mdb=mdb, file_paths=file_dto.file_paths)
 
 @router.get("/get_files/")
 async def get_files(prev_folder: str, mdb: mdb_dep):

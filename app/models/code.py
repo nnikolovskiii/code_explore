@@ -19,6 +19,11 @@ class CodeChunk(MongoEntry):
     order: int
     code_len: int
 
+class CodeContext(MongoEntry):
+    url:str
+    chunk_id: str
+    context: str
+
 class FinalCodeChunk(MongoEntry):
     url: str
     file_path: str

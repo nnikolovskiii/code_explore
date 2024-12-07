@@ -8,7 +8,7 @@ from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
 from app.llms.generic_chat import generic_chat
 from app.llms.json_response import get_json_response
-from app.models.code import CodeChunk, CodeContent
+from app.models.code import CodeChunk, CodeContent, CodeContext
 from app.models.docs import Content, DocumentChunk, Context, Category, FinalDocumentChunk
 
 
@@ -60,10 +60,12 @@ async def add_context(
     context = await _get_surrounding_context(chunk, content, context_len)
     template = add_context_template(context=context, chunk_text=chunk.content)
     response = await generic_chat(template, system_message="You are an AI assistant designed in providing contextual summaries of code.")
-    await mdb.add_entry(Context(
+    await mdb.add_entry(CodeContext(
+        url=chunk.url,
         chunk_id=chunk.id,
         context=response,
-    ),metadata={"order": chunk.order}, collection_name="CodeContext")
+    ),metadata={"order": chunk.order})
+
 
 async def add_context_all(
         mdb: MongoDBDatabase,
@@ -78,4 +80,27 @@ async def add_context_all(
         except Exception as e:
             print(e)
 
+
+async def add_context_files(
+        mdb: MongoDBDatabase,
+        file_paths: List[str],
+):
+    chunks = []
+    for file_path in file_paths:
+        content = await mdb.get_entry_from_col_value(
+            column_name="file_path",
+            column_value=file_path,
+            class_type=CodeContent
+        )
+
+        li = await mdb.get_entries(CodeChunk, doc_filter={"content_id": content.id})
+        chunks.extend(li)
+
+    filtered_chunks = [chunk for chunk in chunks if chunk.code_len != 1]
+
+    for chunk in tqdm(filtered_chunks):
+        try:
+            await add_context(chunk, 8000)
+        except Exception as e:
+            print(e)
 

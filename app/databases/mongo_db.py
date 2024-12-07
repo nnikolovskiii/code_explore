@@ -158,7 +158,7 @@ class MongoDBDatabase:
 
         if document:
             attr_dict = {key: value for key, value in document.items()}
-            attr_dict["id"] = str(id)
+            attr_dict["id"] = str(document["_id"])
 
             instance = class_type(**attr_dict)
             return instance
