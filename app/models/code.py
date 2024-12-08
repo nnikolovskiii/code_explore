@@ -3,12 +3,15 @@ from app.databases.mongo_db import MongoEntry
 class GitUrl(MongoEntry):
     url: str
 
+class CodeEmbeddingFlag(MongoEntry):
+    url: str
+    file_path: str
+
 class CodeContent(MongoEntry):
     url: str
     file_path: str
     content: str
     extension: str
-    embedded: bool = False
 
 class CodeChunk(MongoEntry):
     url: str

@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from app.code_process.pre_process.file_utils import _get_all_file_paths, _get_file_extension, _read_file
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
-from app.models.code import CodeContent, CodeChunk, Folder
+from app.models.code import CodeContent, CodeChunk, Folder, CodeEmbeddingFlag
 from app.models.splitters.base_splitter import Language
 from app.models.splitters.text_splitters import TextSplitter
 
@@ -67,15 +67,16 @@ async def extract_contents(folder_path: str, git_url: str):
 
 async def chunk_code(
         mdb: MongoDBDatabase,
-        git_url: str,
         code_contents: List[CodeContent],
-):
+)->List[CodeChunk]:
     text_splitter = TextSplitter(
         language=Language.PYTHON,
         chunk_size=1000,
         chunk_overlap=100,
         length_function=len,
     )
+
+    chunks = []
 
     for content in tqdm(code_contents):
         if content.extension == ".py":
@@ -92,27 +93,35 @@ async def chunk_code(
                     order=i,
                     code_len=len(texts)
                 )
-                await mdb.add_entry(code_chunk)
+                code_chunk.id = await mdb.add_entry(code_chunk)
+                chunks.append(code_chunk)
+
+    return chunks
 
 
 async def chunk_all_code(
         mdb: MongoDBDatabase,
         git_url: str,
-):
+)->List[CodeChunk]:
     contents = await mdb.get_entries(CodeContent, doc_filter={"url": git_url})
-    await chunk_code(mdb, git_url, contents)
+    return await chunk_code(mdb, contents)
 
 async def chunk_files(
         mdb: MongoDBDatabase,
         file_paths: List[str],
         git_url: str,
-):
+)->List[CodeChunk]:
+    embedded_flags = await mdb.get_entries(CodeEmbeddingFlag, doc_filter={"url": git_url})
+    embedded_files = {flag.file_path for flag in embedded_flags}
+    print(embedded_files)
+
     contents = []
     for file_path in file_paths:
-        content = await mdb.get_entry_from_col_value(
-            column_name="file_path",
-            column_value=file_path,
-            class_type = CodeContent
-        )
-        contents.append(content)
-    await chunk_code(mdb, git_url, contents)
+        if file_path not in embedded_files:
+            content = await mdb.get_entry_from_col_value(
+                column_name="file_path",
+                column_value=file_path,
+                class_type = CodeContent
+            )
+            contents.append(content)
+    return await chunk_code(mdb, contents)

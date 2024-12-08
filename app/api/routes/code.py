@@ -3,9 +3,8 @@ from typing import Annotated, List
 from fastapi import HTTPException, APIRouter, Depends
 from pydantic import BaseModel
 
-from app.code_process.post_process.add_context import add_context_files, add_context_all
-from app.code_process.post_process.embedd_chunks import create_final_chunks_all_code, create_final_chunks_files, \
-    embedd_chunks_all_code, embedd_chunks_files
+from app.code_process.post_process.add_context import add_context_chunks
+from app.code_process.post_process.embedd_chunks import create_final_chunks, embedd_chunks
 from app.code_process.pre_process.extract_content import extract_contents, chunk_code, chunk_files, chunk_all_code
 from app.code_process.pre_process.git_utils import clone_git_repo
 from app.databases.mongo_db import MongoDBDatabase
@@ -15,7 +14,7 @@ import shutil
 
 from app.databases.qdrant_db import QdrantDatabase
 from app.databases.singletons import get_mongo_db, get_qdrant_db
-from app.models.code import CodeContent, CodeChunk, GitUrl, Folder, CodeContext
+from app.models.code import CodeContent, CodeChunk, GitUrl, Folder, CodeContext, CodeEmbeddingFlag
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -37,6 +36,7 @@ async def extract_library(git_url: str,override: bool, mdb: mdb_dep, qdb: qdb_de
             await mdb.delete_entries(CodeContext, doc_filter={"url": git_url})
             await mdb.delete_entries(Folder, doc_filter={"url": git_url})
             await qdb.delete_records(collection_name="CodeChunk", doc_filter={"url": git_url})
+            await mdb.delete_entries(CodeEmbeddingFlag, doc_filter={"url": git_url})
 
         urls = await mdb.get_entries(GitUrl, doc_filter={"url": git_url})
         if len(urls) == 0:
@@ -54,17 +54,17 @@ async def extract_library(git_url: str,override: bool, mdb: mdb_dep, qdb: qdb_de
 
 @router.get("/chunk_all_code/")
 async def _chunk_all_code(git_url: str, mdb: mdb_dep, qdb: qdb_dep):
-    await chunk_all_code(git_url=git_url, mdb=mdb)
-    await add_context_all(mdb=mdb, git_url=git_url)
-    await create_final_chunks_all_code(mdb=mdb, git_url=git_url)
-    await embedd_chunks_all_code(mdb=mdb, qdb=qdb, git_url=git_url)
+    chunks = await chunk_all_code(git_url=git_url, mdb=mdb)
+    contexts = await add_context_chunks(mdb=mdb, chunks=chunks)
+    final_chunks = await create_final_chunks(mdb=mdb, chunks=chunks, contexts=contexts)
+    await embedd_chunks(mdb=mdb, qdb=qdb, chunks=final_chunks)
 
 @router.post("/chunk_files/")
 async def _chunk_files(file_dto: FileDto, git_url: str, mdb: mdb_dep, qdb: qdb_dep):
-    await chunk_files(file_paths=file_dto.file_paths, git_url=git_url, mdb=mdb)
-    await add_context_files(mdb=mdb, file_paths=file_dto.file_paths)
-    await create_final_chunks_files(mdb=mdb, file_paths=file_dto.file_paths)
-    await embedd_chunks_files(mdb=mdb, qdb=qdb, file_paths=file_dto.file_paths)
+    chunks = await chunk_files(file_paths=file_dto.file_paths, git_url=git_url, mdb=mdb)
+    contexts = await add_context_chunks(mdb=mdb, chunks=chunks)
+    final_chunks = await create_final_chunks(mdb=mdb, chunks=chunks, contexts=contexts)
+    await embedd_chunks(mdb=mdb, qdb=qdb, chunks=final_chunks)
 
 @router.get("/get_files/")
 async def get_files(prev_folder: str, mdb: mdb_dep):
