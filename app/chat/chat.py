@@ -5,7 +5,7 @@ from torch.utils.hipify.hipify_python import value
 
 from app.databases.singletons import get_qdrant_db
 from app.llms.generic_chat import generic_chat
-from app.models.code import FinalCodeChunk
+from app.models.code import FinalCodeChunk, CodeChunk
 from app.models.docs import FinalDocumentChunk
 
 
@@ -41,9 +41,10 @@ async def retrieve_relevant_chunks(
 
     return await qdb.retrieve_similar_entries(
         value=question,
-        class_type=FinalCodeChunk,
+        class_type=CodeChunk,
         score_threshold=0.0,
         top_k=15,
+        filter={"active": True}
     )
 
 async def chat(question: str)->str:

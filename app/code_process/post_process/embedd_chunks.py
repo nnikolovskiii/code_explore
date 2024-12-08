@@ -55,7 +55,8 @@ async def embedd_chunks(
     for chunk in tqdm(chunks):
         await qdb.embedd_and_upsert_record(
             value=chunk.content,
-            entity=chunk
+            entity=chunk,
+            metadata={"active": True}
         )
 
     if len(chunks) > 0:
@@ -69,3 +70,4 @@ async def embedd_chunks(
                 file_path=file_path,
                 active=True
             ))
+

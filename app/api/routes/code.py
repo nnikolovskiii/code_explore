@@ -4,6 +4,7 @@ from fastapi import HTTPException, APIRouter, Depends
 from pydantic import BaseModel
 
 from app.code_process.code_process_flow import process_code_files
+from app.code_process.post_process.active_status import update_records
 from app.code_process.post_process.add_context import add_context_chunks
 from app.code_process.post_process.embedd_chunks import create_final_chunks, embedd_chunks
 from app.code_process.pre_process.extract_content import extract_contents, chunk_code, chunk_files, chunk_all_code
@@ -79,6 +80,15 @@ async def change_active_files(file_dto: FileActiveDto, git_url:str, mdb: mdb_dep
 
         code_active_flag.active = active_status
         await mdb.update_entry(code_active_flag)
+
+        record = await update_records(
+            qdb=qdb,
+            collection_name="CodeChunk",
+            filter={"file_path": file_path},
+            update={"active": active_status},
+        )
+
+
 
 @router.get("/chunk_all_code/")
 async def _chunk_all_code(git_url: str, mdb: mdb_dep, qdb: qdb_dep):

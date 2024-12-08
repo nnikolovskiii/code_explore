@@ -1,6 +1,8 @@
 import asyncio
 import uuid
 from typing import List, Dict, Any, Optional, TypeVar, Callable, Awaitable
+
+from aiohttp import payload_type
 from qdrant_client.async_qdrant_client import AsyncQdrantClient
 from qdrant_client import models
 from typing import Type as TypingType
@@ -42,6 +44,7 @@ class QdrantDatabase:
         value: str,
         entity: T,
         collection_name: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> List[float]:
         collection_name = entity.__class__.__name__ if collection_name is None else collection_name
 
@@ -49,13 +52,16 @@ class QdrantDatabase:
             await self.create_collection(collection_name)
 
         vector = await embedd_content_with_model(value)
+        payload = entity.model_dump()
+        if metadata:
+            payload.update(metadata)
 
         await self.client.upsert(
             collection_name=collection_name,
             points=[
                 models.PointStruct(
                     id=str(uuid.uuid4()),
-                    payload=entity.model_dump(),
+                    payload=payload,
                     vector=vector,
                 ),
             ],
@@ -85,7 +91,7 @@ class QdrantDatabase:
                 )
             )
         except Exception as e:
-            raise RuntimeError(f"Failed to delete records: {e}")
+            print(f"Failed to delete records: {e}")
 
     async def retrieve_point(
         self, collection_name: str, point_id: str
@@ -121,12 +127,12 @@ class QdrantDatabase:
 
         return [class_type(**point.payload) for point in points]
 
-    async def transform(
-        self,
-        collection_name: str,
-        function: Callable[[List[Record]], Awaitable[None]],
-        with_vectors: bool = False,
-        filter: Optional[Dict[str, Any]] = None,
+    async def transform_all(
+            self,
+            collection_name: str,
+            function: Callable[[List[Record]], Awaitable[None]],
+            with_vectors: bool = False,
+            filter: Optional[Dict[str, Any]] = None,
     ) -> List[Record]:
         field_condition = QdrantDatabase._generate_filter(filter=filter)
         offset = None
@@ -145,6 +151,26 @@ class QdrantDatabase:
             if offset is None:
                 break
         return records
+
+    async def get_first_record_by_filter(
+            self,
+            collection_name: str,
+            filter: Optional[Dict[str, Any]] = None,
+    ) -> Record|None:
+        filter_obj = QdrantDatabase._generate_filter(filter=filter)
+
+        response = await self.client.scroll(
+            collection_name=collection_name,
+            scroll_filter=filter_obj,
+            limit=1
+        )
+
+        try:
+            records = response[0]
+            return records[0]
+        except IndexError:
+            print("There is no such record.")
+            return None
 
     async def upsert_record(
         self,
@@ -203,42 +229,3 @@ class QdrantDatabase:
             )
         return field_condition
 
-
-async def update_active_status_fn(
-        records: List[Record],
-        qdb: QdrantDatabase,
-        collection_name: str,
-        update: Dict[str, Any],
-):
-    ids = [record.id for record in records]
-    await qdb.update_points(
-        collection_name=collection_name,
-        ids=ids,
-        update=update,
-    )
-
-
-async def update_active_status(
-        collection_name: str,
-        filter: Optional[Dict[str, Any]] = None,
-        update: Dict[str, Any] = None,
-):
-    if update is None:
-        raise ValueError("Update payload cannot be None.")
-
-    qdb = QdrantDatabase()
-
-    async def process_records(records: List[Record]):
-        await update_active_status_fn(records, qdb, collection_name, update)
-
-    await qdb.transform(
-        collection_name=collection_name,
-        function=process_records,
-        filter=filter,
-    )
-
-asyncio.run(update_active_status(
-    collection_name="CodeChunk",
-    filter={"id":"6755a2a51849b1cb4e7513a6"},
-    update={"url":"lol"}
-))
