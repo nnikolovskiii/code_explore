@@ -1,6 +1,6 @@
 import asyncio
 import uuid
-from typing import List, Dict, Any, Optional, TypeVar
+from typing import List, Dict, Any, Optional, TypeVar, Callable, Awaitable
 from qdrant_client.async_qdrant_client import AsyncQdrantClient
 from qdrant_client import models
 from typing import Type as TypingType
@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from qdrant_client.conversions import common_types as types
 from dotenv import load_dotenv
 import os
+from qdrant_client.http.models import Record
 
 class SearchOutput(BaseModel):
     score: float
@@ -88,7 +89,7 @@ class QdrantDatabase:
 
     async def retrieve_point(
         self, collection_name: str, point_id: str
-    ) -> types.Record:
+    ) -> Record:
         points = await self.client.retrieve(
             collection_name=collection_name,
             ids=[point_id],
@@ -120,15 +121,15 @@ class QdrantDatabase:
 
         return [class_type(**point.payload) for point in points]
 
-    async def get_all_points(
+    async def transform(
         self,
         collection_name: str,
+        function: Callable[[List[Record]], Awaitable[None]],
         with_vectors: bool = False,
         filter: Optional[Dict[str, Any]] = None,
-    ) -> List[types.Record]:
+    ) -> List[Record]:
         field_condition = QdrantDatabase._generate_filter(filter=filter)
         offset = None
-        records = []
         while True:
             response = await self.client.scroll(
                 collection_name=collection_name,
@@ -138,7 +139,8 @@ class QdrantDatabase:
                 with_payload=True,
                 with_vectors=with_vectors,
             )
-            records.extend(response[0])
+            records = response[0]
+            await function(records)
             offset = response[-1]
             if offset is None:
                 break
@@ -176,14 +178,14 @@ class QdrantDatabase:
             ),
         )
 
-    async def update_point(
-        self, collection_name: str, id: str, update: Dict[str, Any]
+    async def update_points(
+        self, collection_name: str, ids: List[str], update: Dict[str, Any]
     ):
         await self.client.set_payload(
             collection_name=collection_name,
             wait=True,
             payload=update,
-            points=[id],
+            points=ids,
         )
 
     @staticmethod
@@ -200,3 +202,43 @@ class QdrantDatabase:
                 ]
             )
         return field_condition
+
+
+async def update_active_status_fn(
+        records: List[Record],
+        qdb: QdrantDatabase,
+        collection_name: str,
+        update: Dict[str, Any],
+):
+    ids = [record.id for record in records]
+    await qdb.update_points(
+        collection_name=collection_name,
+        ids=ids,
+        update=update,
+    )
+
+
+async def update_active_status(
+        collection_name: str,
+        filter: Optional[Dict[str, Any]] = None,
+        update: Dict[str, Any] = None,
+):
+    if update is None:
+        raise ValueError("Update payload cannot be None.")
+
+    qdb = QdrantDatabase()
+
+    async def process_records(records: List[Record]):
+        await update_active_status_fn(records, qdb, collection_name, update)
+
+    await qdb.transform(
+        collection_name=collection_name,
+        function=process_records,
+        filter=filter,
+    )
+
+asyncio.run(update_active_status(
+    collection_name="CodeChunk",
+    filter={"id":"6755a2a51849b1cb4e7513a6"},
+    update={"url":"lol"}
+))

@@ -7,6 +7,11 @@ class CodeEmbeddingFlag(MongoEntry):
     url: str
     file_path: str
 
+class CodeActiveFlag(MongoEntry):
+    url: str
+    file_path: str
+    active: bool
+
 class CodeContent(MongoEntry):
     url: str
     file_path: str
