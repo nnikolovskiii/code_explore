@@ -9,9 +9,7 @@ from app.databases.mongo_db import MongoDBDatabase
 from app.models.code import GitUrl
 
 async def clone_git_repo(
-        mdb: MongoDBDatabase,
         git_url: str,
-        override: bool
 ) -> str | None:
     folder_name = git_url.split(".git")[0].split("/")[-1]
     load_dotenv()

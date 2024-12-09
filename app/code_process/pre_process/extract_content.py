@@ -34,7 +34,7 @@ async def extract_contents(folder_path: str, git_url: str):
             folders = folder_path.split("/")
             acc_folder = folders[0]
             for folder in folders[1:]:
-                s.add((acc_folder, folder))
+                s.add((acc_folder, acc_folder+"/"+folder))
                 acc_folder+="/"+folder
 
             if extension:
@@ -46,7 +46,7 @@ async def extract_contents(folder_path: str, git_url: str):
                 ))
 
                 await mdb.add_entry(Folder(
-                    git_url=git_url,
+                    url=git_url,
                     prev=folder_path,
                     next=no_root_path,
                     is_folder=False
@@ -57,7 +57,7 @@ async def extract_contents(folder_path: str, git_url: str):
 
     for prev_folder, next_folder in s:
         folder = Folder(
-            git_url=git_url,
+            url=git_url,
             prev=prev_folder,
             next=next_folder,
             is_folder=True

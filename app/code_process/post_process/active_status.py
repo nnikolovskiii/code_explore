@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 
 from qdrant_client.conversions.common_types import Record
 
@@ -22,7 +22,7 @@ async def update_records_fn(
 async def update_records(
         qdb: QdrantDatabase,
         collection_name: str,
-        filter: Optional[Dict[str, Any]] = None,
+        filter: Optional[Dict[Tuple[str, str], Any]] = None,
         update: Dict[str, Any] = None,
 ):
     if update is None:

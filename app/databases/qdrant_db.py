@@ -1,6 +1,6 @@
 import asyncio
 import uuid
-from typing import List, Dict, Any, Optional, TypeVar, Callable, Awaitable
+from typing import List, Dict, Any, Optional, TypeVar, Callable, Awaitable, Tuple
 
 from aiohttp import payload_type
 from qdrant_client.async_qdrant_client import AsyncQdrantClient
@@ -77,7 +77,7 @@ class QdrantDatabase:
     async def delete_collection(self, collection_name: str):
         await self.client.delete_collection(collection_name=collection_name)
 
-    async def delete_records(self, collection_name: str, doc_filter: Dict[str, Any]):
+    async def delete_records(self, collection_name: str, doc_filter: Dict[Tuple[str, str], Any]):
         if not doc_filter:
             raise ValueError("Filter cannot be empty to prevent accidental deletion of all records.")
 
@@ -109,12 +109,12 @@ class QdrantDatabase:
         class_type: TypingType[T],
         score_threshold: float,
         top_k: int,
-        filter: Optional[Dict[str, Any]] = None,
+        filter: Optional[Dict[Tuple[str,str], Any]] = None,
         collection_name: Optional[str] = None,
 
     ) -> List[T]:
         collection_name = class_type.__name__ if collection_name is None else collection_name
-        field_condition = QdrantDatabase._generate_filter(filter=filter)
+        field_condition = QdrantDatabase._generate_filter(filters=filter)
         vector = await embedd_content_with_model(value)
 
         points =  await self.client.search(
@@ -132,9 +132,9 @@ class QdrantDatabase:
             collection_name: str,
             function: Callable[[List[Record]], Awaitable[None]],
             with_vectors: bool = False,
-            filter: Optional[Dict[str, Any]] = None,
+            filter: Optional[Dict[Tuple[str,str], Any]] = None,
     ) -> List[Record]:
-        field_condition = QdrantDatabase._generate_filter(filter=filter)
+        field_condition = QdrantDatabase._generate_filter(filters=filter)
         offset = None
         while True:
             response = await self.client.scroll(
@@ -155,9 +155,9 @@ class QdrantDatabase:
     async def get_first_record_by_filter(
             self,
             collection_name: str,
-            filter: Optional[Dict[str, Any]] = None,
+            filter: Optional[Dict[Tuple[str,str], Any]] = None,
     ) -> Record|None:
-        filter_obj = QdrantDatabase._generate_filter(filter=filter)
+        filter_obj = QdrantDatabase._generate_filter(filters=filter)
 
         response = await self.client.scroll(
             collection_name=collection_name,
@@ -194,9 +194,9 @@ class QdrantDatabase:
         )
 
     async def delete_points(
-        self, collection_name: str, filter: Optional[Dict[str, Any]] = None
+        self, collection_name: str, filter: Optional[Dict[Tuple[str,str], Any]] = None
     ):
-        field_condition = QdrantDatabase._generate_filter(filter=filter)
+        field_condition = QdrantDatabase._generate_filter(filters=filter)
         await self.client.delete(
             collection_name=collection_name,
             points_selector=models.FilterSelector(
@@ -215,17 +215,27 @@ class QdrantDatabase:
         )
 
     @staticmethod
-    def _generate_filter(filter: Optional[Dict[str, Any]] = None):
+    def _generate_filter(filters: Optional[Dict[Tuple[str,str], Any]] = None):
         field_condition = None
+        conditions = []
+        for key_type, value in filters.items():
+            condition = None
+            key,type = key_type
+            if type == "value":
+                condition = models.FieldCondition(
+                    key=key,
+                    match=models.MatchValue(value=value),
+                )
+            elif type == "any":
+                condition = models.FieldCondition(
+                    key=key,
+                    match=models.MatchAny(any=value),
+                )
+            conditions.append(condition)
+
         if filter:
             field_condition = models.Filter(
-                must=[
-                    models.FieldCondition(
-                        key=key,
-                        match=models.MatchValue(value=value),
-                    )
-                    for key, value in filter.items()
-                ]
+                must=conditions
             )
         return field_condition
 

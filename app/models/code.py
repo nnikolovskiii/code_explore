@@ -2,6 +2,7 @@ from app.databases.mongo_db import MongoEntry
 
 class GitUrl(MongoEntry):
     url: str
+    active: bool
 
 class CodeEmbeddingFlag(MongoEntry):
     url: str
@@ -38,5 +39,4 @@ class Folder(MongoEntry):
     prev: str
     next: str
     is_folder: bool
-    git_url: str
-    embedded: bool = False
+    url: str
