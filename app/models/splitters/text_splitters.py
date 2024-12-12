@@ -8,6 +8,5 @@ from app.models.splitters.recursive_splitter import RecursiveCharacterTextSplitt
 
 class TextSplitter(RecursiveCharacterTextSplitter):
 
-    def __init__(self, language:Language,  **kwargs: Any) -> None:
-        separators = self.get_separators_for_language(language)
-        super().__init__(separators=separators, **kwargs)
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)

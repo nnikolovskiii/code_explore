@@ -29,20 +29,20 @@ async def extract_contents(folder_path: str, git_url: str):
             content = _read_file(file_path)
             no_root_path = file_path.split(root_git_path)[1]
             file_name = no_root_path.split("/")[-1]
-            folder_path = no_root_path.split("/"+file_name)[0]
+            folder_path = no_root_path.split("/" + file_name)[0]
 
             folders = folder_path.split("/")
             acc_folder = folders[0]
             for folder in folders[1:]:
-                s.add((acc_folder, acc_folder+"/"+folder))
-                acc_folder+="/"+folder
+                s.add((acc_folder, acc_folder + "/" + folder))
+                acc_folder += "/" + folder
 
             if extension:
                 await mdb.add_entry(CodeContent(
                     url=git_url,
                     file_path=no_root_path,
-                    content= content,
-                    extension= extension
+                    content=content,
+                    extension=extension
                 ))
 
                 await mdb.add_entry(Folder(
@@ -68,9 +68,8 @@ async def extract_contents(folder_path: str, git_url: str):
 async def chunk_code(
         mdb: MongoDBDatabase,
         code_contents: List[CodeContent],
-)->List[CodeChunk]:
+) -> List[CodeChunk]:
     text_splitter = TextSplitter(
-        language=Language.PYTHON,
         chunk_size=1000,
         chunk_overlap=100,
         length_function=len,
@@ -79,22 +78,22 @@ async def chunk_code(
     chunks = []
 
     for content in tqdm(code_contents):
-        if content.extension == ".py":
-            texts = text_splitter.split_text(content.content)
+        text_splitter.set_separators(content.extension)
+        texts = text_splitter.split_text(content.content)
 
-            for i, text in enumerate(texts):
-                code_chunk = CodeChunk(
-                    url=content.url,
-                    file_path=content.file_path,
-                    content_id=content.id,
-                    content=text[0],
-                    start_index=text[1][0],
-                    end_index=text[1][1],
-                    order=i,
-                    code_len=len(texts)
-                )
-                code_chunk.id = await mdb.add_entry(code_chunk)
-                chunks.append(code_chunk)
+        for i, text in enumerate(texts):
+            code_chunk = CodeChunk(
+                url=content.url,
+                file_path=content.file_path,
+                content_id=content.id,
+                content=text[0],
+                start_index=text[1][0],
+                end_index=text[1][1],
+                order=i,
+                code_len=len(texts)
+            )
+            code_chunk.id = await mdb.add_entry(code_chunk)
+            chunks.append(code_chunk)
 
     return chunks
 
@@ -102,15 +101,16 @@ async def chunk_code(
 async def chunk_all_code(
         mdb: MongoDBDatabase,
         git_url: str,
-)->List[CodeChunk]:
+) -> List[CodeChunk]:
     contents = await mdb.get_entries(CodeContent, doc_filter={"url": git_url})
     return await chunk_code(mdb, contents)
+
 
 async def chunk_files(
         mdb: MongoDBDatabase,
         file_paths: List[str],
         git_url: str,
-)->List[CodeChunk]:
+) -> List[CodeChunk]:
     embedded_flags = await mdb.get_entries(CodeEmbeddingFlag, doc_filter={"url": git_url})
     embedded_files = {flag.file_path for flag in embedded_flags}
     print(embedded_files)
@@ -121,7 +121,7 @@ async def chunk_files(
             content = await mdb.get_entry_from_col_value(
                 column_name="file_path",
                 column_value=file_path,
-                class_type = CodeContent
+                class_type=CodeContent
             )
             contents.append(content)
     return await chunk_code(mdb, contents)

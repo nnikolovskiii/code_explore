@@ -123,8 +123,84 @@ class RecursiveCharacterTextSplitter(TextSplitter):
             final_chunks.extend(merged_text)
         return final_chunks
 
+    def set_separators(self, extension: str):
+        language = self.get_language(extension)
+        if language is not None:
+            self._separators = self.get_separators_for_language(language)
+        else:
+            self._separators = ["\n\n", "\n", ".", "!", "?", ",", " "]
+
     def split_text(self, text: str) -> List[str]:
+        print(self._separators)
         return self._split_text(text, self._separators)
+
+    def get_language(self, extension: str)->Language|None:
+        file_extensions = {
+            ".cpp": "CPP",
+            ".cc": "CPP",
+            ".cxx": "CPP",
+            ".c++": "CPP",
+            ".go": "GO",
+            ".java": "JAVA",
+            ".kt": "KOTLIN",
+            ".kts": "KOTLIN",
+            ".js": "JS",
+            ".ts": "TS",
+            ".tsx": "TS",
+            ".php": "PHP",
+            ".php3": "PHP",
+            ".php4": "PHP",
+            ".php5": "PHP",
+            ".phtml": "PHP",
+            ".proto": "PROTO",
+            ".py": "PYTHON",
+            ".pyc": "PYTHON",
+            ".pyd": "PYTHON",
+            ".pyo": "PYTHON",
+            ".rst": "RST",
+            ".rb": "RUBY",
+            ".rbw": "RUBY",
+            ".rake": "RUBY",
+            ".ruby": "RUBY",
+            ".rs": "RUST",
+            ".rlib": "RUST",
+            ".scala": "SCALA",
+            ".sc": "SCALA",
+            ".swift": "SWIFT",
+            ".md": "MARKDOWN",
+            ".markdown": "MARKDOWN",
+            ".tex": "LATEX",
+            ".latex": "LATEX",
+            ".html": "HTML",
+            ".htm": "HTML",
+            ".sol": "SOL",
+            ".cs": "CSHARP",
+            ".cob": "COBOL",
+            ".cbl": "COBOL",
+            ".cpy": "COBOL",
+            ".c": "C",
+            ".h": "C",
+            ".lua": "LUA",
+            ".luac": "LUA",
+            ".pl": "PERL",
+            ".pm": "PERL",
+            ".t": "PERL",
+            ".cgi": "PERL",
+            ".hs": "HASKELL",
+            ".lhs": "HASKELL",
+            ".ex": "ELIXIR",
+            ".exs": "ELIXIR",
+            ".eex": "ELIXIR",
+            ".leex": "ELIXIR",
+            ".ps1": "POWERSHELL",
+            ".psd1": "POWERSHELL",
+            ".psm1": "POWERSHELL",
+        }
+
+        if extension in file_extensions:
+            return Language(file_extensions[extension].lower())
+        return None
+
 
     @classmethod
     def from_language(

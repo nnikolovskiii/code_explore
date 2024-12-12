@@ -4,6 +4,7 @@ from bson import ObjectId
 from fastapi import HTTPException, APIRouter, Depends
 from openai import BaseModel
 
+from app.code_process.code_process_flow import change_active_files, FileActiveListDto
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
 
 import logging
@@ -48,6 +49,21 @@ async def get_files(prev_folder: str, mdb: mdb_dep):
                 folder.color = "white"
 
     return {"folders": folders, }
+
+@router.get("/activate_tmp_files/")
+async def get_files(git_url: str, mdb: mdb_dep, qdb: qdb_dep):
+    folders = await mdb.get_entries(Folder, doc_filter={"url": git_url}, collection_name="TempFolder")
+    folder_paths = [folder.next for folder in folders]
+    active_status = [folder.active for folder in folders]
+    await change_active_files(
+        file_dto = FileActiveListDto(
+            file_paths = folder_paths,
+            active = active_status,),
+        git_url = git_url,
+        mdb = mdb,
+        qdb = qdb,
+    )
+    await mdb.delete_entries(Folder, doc_filter={"url": git_url}, collection_name="TempFolder")
 
 @router.post("/update_file/")
 async def add_file(file_active_dto: FileActiveDto, mdb: mdb_dep):
