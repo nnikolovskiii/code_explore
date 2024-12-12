@@ -1,3 +1,5 @@
+from typing import Optional
+
 from app.databases.mongo_db import MongoEntry
 
 class GitUrl(MongoEntry):
@@ -36,7 +38,9 @@ class CodeContext(MongoEntry):
     context: str
 
 class Folder(MongoEntry):
+    url: str
     prev: str
     next: str
     is_folder: bool
-    url: str
+    active: bool = False
+    color: Optional[str] = None

@@ -7,7 +7,7 @@ from bson import ObjectId
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.qdrant_db import QdrantDatabase
 from app.databases.singletons import get_mongo_db, get_qdrant_db
-from app.models.code import CodeChunk, CodeContent, CodeContext, CodeEmbeddingFlag, CodeActiveFlag
+from app.models.code import CodeChunk, CodeContent, CodeContext, CodeEmbeddingFlag, CodeActiveFlag, Folder
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
@@ -65,9 +65,15 @@ async def embedd_chunks(
                 url=chunks[0].url,
                 file_path=file_path,
             ))
-            await mdb.add_entry(CodeActiveFlag(
-                url=chunks[0].url,
-                file_path=file_path,
-                active=True
-            ))
+            folder = await mdb.get_entry_from_col_value(
+                column_name="next",
+                column_value=file_path,
+                class_type=Folder
+            )
+
+            folder.active = True
+
+            await mdb.update_entry(
+                folder
+            )
 

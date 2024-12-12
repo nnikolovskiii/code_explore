@@ -49,6 +49,7 @@ async def extract_library(git_url: str, override: bool, mdb: mdb_dep, qdb: qdb_d
             await qdb.delete_records(collection_name="CodeChunk", doc_filter={("url", "value"): git_url})
             await mdb.delete_entries(CodeEmbeddingFlag, doc_filter={"url": git_url})
             await mdb.delete_entries(CodeActiveFlag, doc_filter={"url": git_url})
+            await mdb.delete_entries(Folder, collection_name="TempFolder", doc_filter={"url": git_url})
 
         urls = await mdb.get_entries(GitUrl, doc_filter={"url": git_url})
         if len(urls) == 0:
@@ -102,9 +103,9 @@ async def change_active_files(file_dto: FileActiveDto, git_url:str, mdb: mdb_dep
 
     for file_path, active_status in zip(file_dto.file_paths, file_dto.active):
         code_active_flag = await mdb.get_entry_from_col_value(
-            column_name="file_path",
+            column_name="next",
             column_value=file_path,
-            class_type=CodeActiveFlag,
+            class_type=Folder,
         )
 
         code_active_flag.active = active_status

@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 import logging
-from app.api.routes import code, chat, websocket, test, collection_data
+from app.api.routes import code, chat, websocket, test, collection_data, code_files
 from app.databases.singletons import get_mongo_db, get_qdrant_db
 
 logging.basicConfig(level=logging.DEBUG)
@@ -42,6 +42,8 @@ app.include_router(chat.router, prefix="/chat", tags=["chat"])
 app.include_router(websocket.router, prefix="/websocket", tags=["websocket"])
 app.include_router(test.router, prefix="/test", tags=["test"])
 app.include_router(collection_data.router, prefix="/collection_data", tags=["collection_data"])
+app.include_router(code_files.router, prefix="/code_files", tags=["code_files"])
+
 
 
 # if __name__ == "__main__":
