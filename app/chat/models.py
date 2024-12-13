@@ -6,9 +6,10 @@ from app.databases.mongo_db import MongoEntry, MongoDBDatabase
 class Message(MongoEntry):
     role: str
     content: str
-    timestamp: datetime = datetime.now()
+    order: int
     chat_id: str
 
 
 class Chat(MongoEntry):
-    pass
+    title: str
+    timestamp: datetime = datetime.now()

@@ -41,6 +41,9 @@ async def websocket_endpoint(websocket: WebSocket):
                 await websocket.send_text(response_chunk)
                 await asyncio.sleep(0.1)
 
+            await websocket.send_text("<ASTOR>")
+            await asyncio.sleep(0.1)
+
         except Exception as e:
             print(f"Error: {e}")
             break
