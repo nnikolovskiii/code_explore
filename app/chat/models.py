@@ -12,12 +12,3 @@ class Message(MongoEntry):
 
 class Chat(MongoEntry):
     pass
-
-async def main():
-    mdb = MongoDBDatabase()
-    messages = await mdb.get_entries(Message)
-    print(messages)
-
-# Run the async main function
-if __name__ == "__main__":
-    asyncio.run(main())
