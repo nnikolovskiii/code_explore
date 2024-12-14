@@ -248,13 +248,13 @@ beautifulsoup4 = "*"
 
 [[package]]
 name = "certifi"
-version = "2024.8.30"
+version = "2024.12.14"
 description = "Python package for providing Mozilla's CA Bundle."
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "certifi-2024.8.30-py3-none-any.whl", hash = "sha256:922820b53db7a7257ffbda3f597266d435245903d80737e34f8a45ff3e3230d8"},
-    {file = "certifi-2024.8.30.tar.gz", hash = "sha256:bec941d2aa8195e248a60b31ff9f0558284cf01a52591ceda73ea9afffd69fd9"},
+    {file = "certifi-2024.12.14-py3-none-any.whl", hash = "sha256:1275f7a45be9464efc1173084eaa30f866fe2e47d389406136d332ed4967ec56"},
+    {file = "certifi-2024.12.14.tar.gz", hash = "sha256:b650d30f370c2b724812bee08008be0c4163b163ddaec3f2546c1caf65f191db"},
 ]
 
 [[package]]
@@ -1281,13 +1281,13 @@ files = [
 
 [[package]]
 name = "langchain-core"
-version = "0.3.24"
+version = "0.3.25"
 description = "Building applications with LLMs through composability"
 optional = false
 python-versions = "<4.0,>=3.9"
 files = [
-    {file = "langchain_core-0.3.24-py3-none-any.whl", hash = "sha256:97192552ef882a3dd6ae3b870a180a743801d0137a1159173f51ac555eeb7eec"},
-    {file = "langchain_core-0.3.24.tar.gz", hash = "sha256:460851e8145327f70b70aad7dce2cdbd285e144d14af82b677256b941fc99656"},
+    {file = "langchain_core-0.3.25-py3-none-any.whl", hash = "sha256:e10581c6c74ba16bdc6fdf16b00cced2aa447cc4024ed19746a1232918edde38"},
+    {file = "langchain_core-0.3.25.tar.gz", hash = "sha256:fdb8df41e5cdd928c0c2551ebbde1cea770ee3c64598395367ad77ddf9acbae7"},
 ]
 
 [package.dependencies]
@@ -3560,13 +3560,13 @@ zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
 name = "uvicorn"
-version = "0.32.1"
+version = "0.33.0"
 description = "The lightning-fast ASGI server."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "uvicorn-0.32.1-py3-none-any.whl", hash = "sha256:82ad92fd58da0d12af7482ecdb5f2470a04c9c9a53ced65b9bbb4a205377602e"},
-    {file = "uvicorn-0.32.1.tar.gz", hash = "sha256:ee9519c246a72b1c084cea8d3b44ed6026e78a4a309cbedae9c37e4cb9fbb175"},
+    {file = "uvicorn-0.33.0-py3-none-any.whl", hash = "sha256:2c30de4aeea83661a520abab179b24084a0019c0c1bbe137e5409f741cbde5f8"},
+    {file = "uvicorn-0.33.0.tar.gz", hash = "sha256:3577119f82b7091cf4d3d4177bfda0bae4723ed92ab1439e8d779de880c9cc59"},
 ]
 
 [package.dependencies]
