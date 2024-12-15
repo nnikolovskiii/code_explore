@@ -22,6 +22,10 @@ class ChatDto(BaseModel):
     user_messages: list[str]
     assistant_messages: list[str]
 
+class MessagesDto(BaseModel):
+    user_messages: List[Tuple[str, int]]
+    assistant_messages: List[Tuple[str, int]]
+
 @router.get("/get_chats/", status_code=HTTPStatus.CREATED)
 async def get_chats(mdb: db_dep):
     try:
@@ -46,39 +50,35 @@ async def get_chat_messages(chat_id:str ,mdb: db_dep):
 
 
 @router.post("/add_chat/", status_code=HTTPStatus.CREATED)
-async def add_chat(chat_dto: ChatDto, mdb: db_dep):
+async def add_chat(messages_dto: MessagesDto, mdb: db_dep):
     try:
-        user_messages = chat_dto.user_messages
+        user_messages = messages_dto.user_messages
 
         if len(user_messages) == 0:
             raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="There are no user messages")
-        title = await create_chat_name(message=user_messages[0])
+        title = await create_chat_name(message=user_messages[0][0])
         chat_obj = Chat(title=title)
-        chat_obj_id = await mdb.add_entry(chat_obj)
-        for i,message in enumerate(user_messages):
+        chat_id = await mdb.add_entry(chat_obj)
+        for i,tup in enumerate(user_messages):
             await mdb.add_entry(Message(
                 role="user",
-                content=message,
-                order= i,
-                chat_id=chat_obj_id
+                content=tup[0],
+                order=tup[1],
+                chat_id=chat_id
             ))
 
-        for i,message in enumerate(chat_dto.assistant_messages):
+        for i,tup in enumerate(messages_dto.assistant_messages):
             await mdb.add_entry(Message(
                 role="assistant",
-                content=message,
-                order= i,
-                chat_id=chat_obj_id
+                content=tup[0],
+                order=tup[1],
+                chat_id=chat_id
             ))
 
     except Exception as e:
         logging.error(f"Failed to add entry: {e}")
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to add entry")
     return True
-
-class MessagesDto(BaseModel):
-    user_messages: List[Tuple[str, int]]
-    assistant_messages: List[Tuple[str, int]]
 
 
 @router.post("/update_chat/{chat_id}", status_code=HTTPStatus.CREATED)

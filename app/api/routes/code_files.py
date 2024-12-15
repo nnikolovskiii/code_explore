@@ -1,3 +1,4 @@
+import asyncio
 from typing import Annotated, List, Dict
 
 from bson import ObjectId
@@ -12,6 +13,7 @@ import logging
 from app.databases.qdrant_db import QdrantDatabase
 from app.databases.singletons import get_mongo_db, get_qdrant_db
 from app.models.code import CodeContent, CodeChunk, GitUrl, Folder, CodeContext, CodeEmbeddingFlag, CodeActiveFlag
+from fastapi import WebSocket
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -20,16 +22,18 @@ router = APIRouter()
 mdb_dep = Annotated[MongoDBDatabase, Depends(get_mongo_db)]
 qdb_dep = Annotated[QdrantDatabase, Depends(get_qdrant_db)]
 
+
 class FileActiveDto(BaseModel):
     file_path: str
     active: bool
+
 
 @router.get("/get_files/")
 async def get_files(prev_folder: str, mdb: mdb_dep):
     folders = await mdb.get_entries(Folder, doc_filter={"prev": prev_folder})
     temp_folders = await mdb.get_entries(Folder, doc_filter={"prev": prev_folder}, collection_name="TempFolder")
     temp_folders_set = {folder.next for folder in temp_folders}
-    temp_active_dict = {folder.next:folder.active for folder in temp_folders}
+    temp_active_dict = {folder.next: folder.active for folder in temp_folders}
 
     for folder in folders:
         if folder.next in temp_folders_set:
@@ -50,20 +54,53 @@ async def get_files(prev_folder: str, mdb: mdb_dep):
 
     return {"folders": folders, }
 
+
+@router.websocket("/activate_tmp_files_ws/")
+async def activate_tmp_files_ws(mdb: mdb_dep, qdb: qdb_dep, websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        try:
+            git_url = await websocket.receive_text()
+            folders = await mdb.get_entries(Folder, doc_filter={"url": git_url}, collection_name="TempFolder")
+            folder_paths = [folder.next for folder in folders]
+            active_status = [folder.active for folder in folders]
+            async for progress in change_active_files(
+                    file_dto=FileActiveListDto(
+                        file_paths=folder_paths,
+                        active=active_status,
+                    ),
+                    git_url=git_url,
+                    mdb=mdb,
+                    qdb=qdb,
+            ):
+                print(f"Sending chunk: {progress}")
+                await websocket.send_text(progress)
+                await asyncio.sleep(0.1)
+
+            await mdb.delete_entries(Folder, doc_filter={"url": git_url}, collection_name="TempFolder")
+            await websocket.send_text("<ASTOR>")
+            await asyncio.sleep(0.1)
+
+        except Exception as e:
+            print(f"Error: {e}")
+            break
+
+
 @router.get("/activate_tmp_files/")
-async def get_files(git_url: str, mdb: mdb_dep, qdb: qdb_dep):
+async def activate_tmp_files(git_url: str, mdb: mdb_dep, qdb: qdb_dep):
     folders = await mdb.get_entries(Folder, doc_filter={"url": git_url}, collection_name="TempFolder")
     folder_paths = [folder.next for folder in folders]
     active_status = [folder.active for folder in folders]
     await change_active_files(
-        file_dto = FileActiveListDto(
-            file_paths = folder_paths,
-            active = active_status,),
-        git_url = git_url,
-        mdb = mdb,
-        qdb = qdb,
+        file_dto=FileActiveListDto(
+            file_paths=folder_paths,
+            active=active_status, ),
+        git_url=git_url,
+        mdb=mdb,
+        qdb=qdb,
     )
     await mdb.delete_entries(Folder, doc_filter={"url": git_url}, collection_name="TempFolder")
+
 
 @router.post("/update_file/")
 async def add_file(file_active_dto: FileActiveDto, mdb: mdb_dep):

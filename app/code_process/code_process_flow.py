@@ -22,17 +22,23 @@ async def process_code_files(
         qdb: QdrantDatabase,
 ):
     chunks = await chunk_files(file_paths=file_paths, git_url=git_url, mdb=mdb)
-    contexts = await add_context_chunks(mdb=mdb, chunks=chunks)
+    contexts = []
+    async for progress, status, context in add_context_chunks(mdb=mdb, chunks=chunks):
+        if context is not None:
+            contexts.append(context)
+        yield progress, status
     final_chunks = await create_final_chunks(mdb=mdb, chunks=chunks, contexts=contexts)
-    await embedd_chunks(mdb=mdb, qdb=qdb, chunks=final_chunks)
+    async for progress in embedd_chunks(mdb=mdb, qdb=qdb, chunks=final_chunks):
+        yield progress
 
 async def change_active_files(file_dto: FileActiveListDto, git_url:str, mdb: MongoDBDatabase, qdb: QdrantDatabase):
-    await process_code_files(
+    async for progress in process_code_files(
         file_paths=file_dto.file_paths,
         git_url=git_url,
         mdb=mdb,
         qdb=qdb,
-    )
+    ):
+        yield progress
 
     for file_path, active_status in zip(file_dto.file_paths, file_dto.active):
         code_active_flag = await mdb.get_entry_from_col_value(
