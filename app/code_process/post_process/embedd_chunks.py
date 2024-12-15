@@ -52,14 +52,12 @@ async def embedd_chunks(
 ):
     file_paths_set = {chunk.file_path for chunk in chunks}
 
-    for progress,chunk in enumerate(chunks):
+    for chunk in tqdm(chunks):
         await qdb.embedd_and_upsert_record(
             value=chunk.content,
             entity=chunk,
             metadata={"active": True}
         )
-
-        yield str(progress), "embedding"
 
     if len(chunks) > 0:
         for file_path in file_paths_set:
@@ -78,4 +76,3 @@ async def embedd_chunks(
             await mdb.update_entry(
                 folder
             )
-

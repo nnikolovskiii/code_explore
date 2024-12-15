@@ -75,14 +75,14 @@ async def add_context(
 async def add_context_chunks(
         mdb: MongoDBDatabase,
         chunks: List[CodeChunk]
-):
+)->List[CodeContext]:
     filtered_chunks = [chunk for chunk in chunks if chunk.code_len != 1]
+    code_contexts = []
 
-    for progress, chunk in enumerate(filtered_chunks):
+    for chunk in tqdm(filtered_chunks[:10]):
         try:
             code_context = await add_context(chunk, 8000, mdb)
-            yield str(progress), "add_context", code_context
+            code_contexts.append(code_context)
         except Exception as e:
             print(e)
-            yield str(progress), "error", None
-
+    return code_contexts

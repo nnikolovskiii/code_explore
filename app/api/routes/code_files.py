@@ -54,38 +54,6 @@ async def get_files(prev_folder: str, mdb: mdb_dep):
 
     return {"folders": folders, }
 
-
-@router.websocket("/activate_tmp_files_ws/")
-async def activate_tmp_files_ws(mdb: mdb_dep, qdb: qdb_dep, websocket: WebSocket):
-    await websocket.accept()
-    while True:
-        try:
-            git_url = await websocket.receive_text()
-            folders = await mdb.get_entries(Folder, doc_filter={"url": git_url}, collection_name="TempFolder")
-            folder_paths = [folder.next for folder in folders]
-            active_status = [folder.active for folder in folders]
-            async for progress in change_active_files(
-                    file_dto=FileActiveListDto(
-                        file_paths=folder_paths,
-                        active=active_status,
-                    ),
-                    git_url=git_url,
-                    mdb=mdb,
-                    qdb=qdb,
-            ):
-                print(f"Sending chunk: {progress}")
-                await websocket.send_text(progress)
-                await asyncio.sleep(0.1)
-
-            await mdb.delete_entries(Folder, doc_filter={"url": git_url}, collection_name="TempFolder")
-            await websocket.send_text("<ASTOR>")
-            await asyncio.sleep(0.1)
-
-        except Exception as e:
-            print(f"Error: {e}")
-            break
-
-
 @router.get("/activate_tmp_files/")
 async def activate_tmp_files(git_url: str, mdb: mdb_dep, qdb: qdb_dep):
     folders = await mdb.get_entries(Folder, doc_filter={"url": git_url}, collection_name="TempFolder")
