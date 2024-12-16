@@ -19,12 +19,19 @@ class DocsContent(MongoEntry):
     link: str
     content: str
 
-class DocumentChunk(MongoEntry):
+class DocsChunk(MongoEntry):
+    base_url: str
+    link: str
     content_id: str
     content: str
     start_index: int
     end_index: int
     order: int
+    doc_len: int
+
+class DocsEmbeddingFlag(MongoEntry):
+    base_url: str
+    link: str
 
 class FinalDocumentChunk(MongoEntry):
     chunk_id: str
@@ -32,7 +39,9 @@ class FinalDocumentChunk(MongoEntry):
     category: str
     link: str
 
-class Context(MongoEntry):
+class DocsContext(MongoEntry):
+    base_url: str
+    link: str
     chunk_id: str
     context: str
 

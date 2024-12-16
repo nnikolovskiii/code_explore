@@ -116,9 +116,6 @@ async def chunk_files(
     embedded_files = {flag.file_path for flag in embedded_flags}
 
     contents = []
-    print("loool")
-    print(file_paths)
-    print(embedded_files)
     for file_path in file_paths:
         if file_path not in embedded_files:
             content = await mdb.get_entry_from_col_value(
@@ -126,6 +123,5 @@ async def chunk_files(
                 column_value=file_path,
                 class_type=CodeContent
             )
-            print(content)
             contents.append(content)
     return await chunk_code(mdb, contents)

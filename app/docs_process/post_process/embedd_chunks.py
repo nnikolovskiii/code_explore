@@ -1,51 +1,95 @@
-import asyncio
+import logging
+from typing import List
 
-from bson import ObjectId
-
-from app.databases.singletons import get_mongo_db, get_qdrant_db
-from app.models.docs import FinalDocumentChunk, DocumentChunk, Context, Category, Content
+from app.databases.mongo_db import MongoDBDatabase
+from app.databases.qdrant_db import QdrantDatabase
 from tqdm import tqdm
 
-async def create_final_chunks():
-    mdb = await get_mongo_db()
-    chunks = await mdb.get_entries(DocumentChunk)
+from app.models.docs import DocsChunk, DocsContext, DocsEmbeddingFlag, Link
 
-    url_dict = {}
-    for chunk in chunks:
-        content = await mdb.get_entry(id = ObjectId(chunk.content_id), class_type=Content)
-        url_dict[chunk.id] = content.link
+logger = logging.getLogger(__name__)
 
-    contexts = await mdb.get_entries(Context)
+
+async def create_final_chunks(
+        mdb: MongoDBDatabase,
+        chunks: List[DocsChunk],
+        contexts: List[DocsContext]
+):
     contexts_dict = {context.chunk_id: context.context for context in contexts}
-    categories = await mdb.get_entries(Category)
-    categories_dict = {category.chunk_id: category.name for category in categories}
 
-    count=0
-    count1 = 0
-    for chunk in tqdm(chunks, total=50):
-        new_dict = {"chunk_id": chunk.id, "content": chunk.content, "link": url_dict[chunk.id]}
+    final_chunks = []
+
+    count_context = 0
+    count_all = 0
+    for chunk in tqdm(chunks, total=len(chunks)):
+        content = chunk.content
 
         if chunk.id in contexts_dict:
-            new_dict["content"] = contexts_dict[chunk.id] + new_dict["content"]
-            count+=1
-        if chunk.id in categories_dict:
-            new_dict["category"] = categories_dict[chunk.id]
-            final_chunk = FinalDocumentChunk(**new_dict)
-            await mdb.add_entry(final_chunk)
-            count1 += 1
+            content = contexts_dict[chunk.id] + content
+            count_context += 1
 
-    print(count/len(chunks)*100)
-    print(count1/len(chunks)*100)
+        chunk.content = content
+
+        await mdb.update_entry(chunk)
+        final_chunks.append(chunk)
+        count_all += 1
+
+    if len(chunks)>0:
+        logger.info(f"{count_context / len(chunks) * 100:.2f}% of chunks had context added")
+        logger.info(f"{count_all / len(chunks) * 100:.2f}% of chunks were successfully added to the database")
+
+    return final_chunks
+
+async def create_and_embedd_final_chunks_links(
+        mdb: MongoDBDatabase,
+        links: List[str],
+        docs_url: str,
+        qdb: QdrantDatabase,
+):
+    embedded_flags = await mdb.get_entries(DocsEmbeddingFlag, doc_filter={"base_url": docs_url})
+    embedded_links = {flag.link for flag in embedded_flags}
+
+    chunks = []
+    contexts = []
+    for link in links:
+        if link not in embedded_links:
+            link_chunks = await mdb.get_entries(DocsChunk, doc_filter={"link": link})
+            chunks.extend(link_chunks)
+            link_contexts = await mdb.get_entries(DocsContext, doc_filter={"link": link})
+            contexts.extend(link_contexts)
+
+    await create_final_chunks(mdb, chunks, contexts)
+    await embedd_chunks(mdb, qdb, chunks)
 
 
-async def embedd_chunks():
-    mdb = await get_mongo_db()
-    qdb = await get_qdrant_db()
+async def embedd_chunks(
+        mdb: MongoDBDatabase,
+        qdb: QdrantDatabase,
+        chunks: List[DocsChunk],
+):
+    links_set = {chunk.link for chunk in chunks}
 
-    final_chunks = await mdb.get_entries(FinalDocumentChunk)
-
-    for chunk in tqdm(final_chunks):
+    for chunk in tqdm(chunks):
         await qdb.embedd_and_upsert_record(
             value=chunk.content,
-            entity=chunk
+            entity=chunk,
+            metadata={"active": True}
         )
+
+    if len(chunks) > 0:
+        for link in links_set:
+            await mdb.add_entry(DocsEmbeddingFlag(
+                base_url=chunks[0].base_url,
+                link=link,
+            ))
+            folder = await mdb.get_entry_from_col_value(
+                column_name="link",
+                column_value=link,
+                class_type=Link
+            )
+
+            folder.active = True
+
+            await mdb.update_entry(
+                folder
+            )

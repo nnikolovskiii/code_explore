@@ -1,10 +1,11 @@
-import asyncio
+from typing import List
 
 from bson import ObjectId
 from tqdm import tqdm
-from app.databases.singletons import get_mongo_db
+
+from app.databases.mongo_db import MongoDBDatabase
 from app.llms.json_response import get_json_response
-from app.models.docs import DocumentChunk, Context, Category, FinalDocumentChunk, DocsContent
+from app.models.docs import DocsContent, DocsChunk, DocsEmbeddingFlag, DocsContext
 
 
 def add_context_template(
@@ -18,26 +19,15 @@ Here is the chunk we want to situate within the whole document which is part of 
 <chunk> 
 {chunk_text} 
 </chunk> 
-Give a short succinct context to situate this chunk within the overall document for the purposes of improving search retrieval of the chunk. Also determine the category of the chunk: "navigational", "release_notes" or "content".
-Return in json format: {{"context": "...", "category": "..."}}
+Give a short succinct context to situate this chunk within the overall document for the purposes of improving search retrieval of the chunk.
+Return in json format: {{"context": "..."}}
 """
 
-def add_category_template(
-        chunk_text: str
-):
-    return f"""Below you are given a document which is part of a code documentation.
-<document> 
-{chunk_text} 
-</document> 
-
-Your job is to determine the category of the chunk: "navigational", "release_notes" or "content".
-Return in json format: {{"category": "..."}}
-"""
 
 async def _get_surrounding_context(
-        chunk:DocumentChunk,
+        chunk: DocsChunk,
         content: DocsContent,
-        context_len:int
+        context_len: int
 ) -> str:
     start_index = chunk.start_index
     end_index = chunk.end_index
@@ -47,7 +37,7 @@ async def _get_surrounding_context(
     tmp2 = max(start_index - context_len, 0)
 
     if tmp2 == 0:
-        tmp1 = min(end_index + context_len + (context_len-start_index), len(content))
+        tmp1 = min(end_index + context_len + (context_len - start_index), len(content))
 
     if tmp1 == len(content):
         tmp2 = max(start_index - context_len - (context_len - (len(content) - end_index)), 0)
@@ -59,46 +49,46 @@ async def _get_surrounding_context(
 
 
 async def add_context(
-    chunk: DocumentChunk,
-    context_len: int
+        chunk: DocsChunk,
+        context_len: int,
+        mdb: MongoDBDatabase
 ):
-    mdb = await get_mongo_db()
-    content = await mdb.get_entity(ObjectId(chunk.content_id),Content)
-    content_len = len(content.content)
+    content = await mdb.get_entry(ObjectId(chunk.content_id), DocsContent)
 
-    if len(content.content) != chunk.end_index and chunk.start_index == 0:
-        context = await _get_surrounding_context(chunk, content, context_len)
-        template = add_context_template(context=context, chunk_text=chunk.content)
-        response = await get_json_response(template, system_message="You are an AI assistant designed in providing contextual summaries and categorize documents.")
-        await mdb.add_entry(Context(
-            chunk_id=chunk.id,
-            context=response["context"],
-        ))
-        await mdb.add_entry(Category(
-            chunk_id=chunk.id,
-            name=response["category"],
-        ))
-    else:
-        template = add_category_template(chunk_text=chunk.content)
-        response = await get_json_response(template,
-                                           system_message="You are an AI assistant designed in providing contextual summaries and categorize documents.")
-        await mdb.add_entry(Category(
-            chunk_id=chunk.id,
-            name=response["category"],
-        ))
+    context = await _get_surrounding_context(chunk, content, context_len)
+    template = add_context_template(context=context, chunk_text=chunk.content)
+    response = await get_json_response(template,
+                                       system_message="You are an AI assistant designed in providing contextual summaries and categorize documents.")
+    await mdb.add_entry(DocsContext(
+        base_url=chunk.base_url,
+        link=chunk.link,
+        chunk_id=chunk.id,
+        context=response["context"],
+    ))
 
-async def add_context_flow():
-    mdb = await get_mongo_db()
 
-    chunks = await mdb.get_entries(DocumentChunk)
-
-    for chunk in tqdm(chunks):
+async def add_context_chunks(
+        mdb: MongoDBDatabase,
+        chunks: List[DocsChunk],
+):
+    filtered_chunks = [chunk for chunk in chunks if chunk.doc_len != 1]
+    for chunk in tqdm(filtered_chunks):
         try:
-            await add_context(chunk, 8000)
+            await add_context(chunk, 8000, mdb)
         except Exception as e:
             print(e)
 
+async def add_context_links(
+        mdb: MongoDBDatabase,
+        links: List[str],
+        docs_url: str,
+):
+    embedded_flags = await mdb.get_entries(DocsEmbeddingFlag, doc_filter={"base_url": docs_url})
+    embedded_links = {flag.link for flag in embedded_flags}
 
-# asyncio.run(add_context_flow())
-# asyncio.run(create_final_chunks())
-# asyncio.run(embedd_chunks())
+    chunks = []
+    for link in links:
+        if link not in embedded_links:
+            link_chunks = await mdb.get_entries(DocsChunk, doc_filter={"link": link})
+            chunks.extend(link_chunks)
+    await add_context_chunks(mdb, chunks)
