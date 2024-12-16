@@ -79,7 +79,7 @@ async def add_context_chunks(
     filtered_chunks = [chunk for chunk in chunks if chunk.code_len != 1]
     code_contexts = []
 
-    for chunk in tqdm(filtered_chunks[:10]):
+    for chunk in tqdm(filtered_chunks):
         try:
             code_context = await add_context(chunk, 8000, mdb)
             code_contexts.append(code_context)

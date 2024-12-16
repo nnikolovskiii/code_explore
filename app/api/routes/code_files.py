@@ -90,3 +90,11 @@ async def add_file(file_active_dto: FileActiveDto, mdb: mdb_dep):
     else:
         tmp_folder.active = file_active_dto.active
         await mdb.update_entry(tmp_folder, "TempFolder")
+
+@router.get("/get_git_urls/")
+async def get_git_urls(mdb: mdb_dep):
+    try:
+        git_urls = await mdb.get_entries(GitUrl)
+        return {"git_urls": git_urls}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
