@@ -1,11 +1,16 @@
+import asyncio
 from collections import deque
+from typing import List
 from urllib.parse import urljoin
 from app.databases.mongo_db import MongoDBDatabase
 from bs4 import BeautifulSoup
 import requests
+from tqdm import tqdm
+
+from app.models.docs import Link
 
 
-def get_neighbouring_links(url: str) -> set:
+def _get_neighbouring_links(url: str) -> set:
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -26,25 +31,67 @@ def get_neighbouring_links(url: str) -> set:
         return set()
 
 
-base_url = "https://docs.docker.com/"
-
-def traverse_links(start_url: str):
+async def traverse_links(docs_url: str, mdb: MongoDBDatabase):
     checked = set()
-    mdb = MongoDBDatabase()
-    counter = 0
-    links = deque([start_url])
+    links = deque([docs_url])
+
+    link = docs_url if docs_url[-1] != "/" else docs_url[:-1]
+
+    link_obj = Link(
+        base_url=docs_url,
+        prev_link=link,
+        link=link,
+    )
+    await mdb.add_entry(link_obj)
 
     while len(links) > 0:
         url = links.popleft()
         checked.add(url)
 
-        neighbours = get_neighbouring_links(url)
+        neighbours = _get_neighbouring_links(url)
         for link in neighbours:
-            if base_url in link and link not in checked:
+            if docs_url in link and link not in checked:
                 checked.add(link)
                 links.append(link)
 
-                counter += 1
-                print(counter)
-                mdb.add_entry_dict({"link": link, "base_url": base_url}, "Links")
+                li: list[str] =  link.split("/")
+                if li[-1].strip() == "":
+                    prev_link = "/".join(li[:-2])
+                else:
+                    prev_link = "/".join(li[:-1])
+
+                link = link if link[-1] != "/" else link[:-1]
+
+                link_obj = Link(
+                    base_url=docs_url,
+                    prev_link=prev_link,
+                    link=link,
+                )
+                await mdb.add_entry(link_obj)
+
+async def check_prev_links(docs_url: str, mdb: MongoDBDatabase):
+    links = await mdb.get_entries(Link, {"base_url": docs_url})
+
+    for link in tqdm(links):
+        new_prev_link = link.prev_link
+        curr_link = link.prev_link
+        while True:
+            prev_link = await mdb.get_entry_from_col_value(
+                column_name="link",
+                column_value=curr_link,
+                class_type=Link,
+            )
+            if prev_link is not None:
+                new_prev_link = prev_link.link
+                break
+
+            curr_link = "/".join(curr_link.split("/")[:-1])
+
+        if new_prev_link != link.prev_link:
+            link.prev_link = new_prev_link
+            await mdb.update_entry(link)
+
+# asyncio.run(check_prev_links(docs_url="https://fastapi.tiangolo.com/", mdb=MongoDBDatabase()))
+
+
 

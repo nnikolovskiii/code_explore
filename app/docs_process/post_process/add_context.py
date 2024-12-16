@@ -4,7 +4,7 @@ from bson import ObjectId
 from tqdm import tqdm
 from app.databases.singletons import get_mongo_db
 from app.llms.json_response import get_json_response
-from app.models.docs import Content, DocumentChunk, Context, Category, FinalDocumentChunk
+from app.models.docs import DocumentChunk, Context, Category, FinalDocumentChunk, DocsContent
 
 
 def add_context_template(
@@ -36,7 +36,7 @@ Return in json format: {{"category": "..."}}
 
 async def _get_surrounding_context(
         chunk:DocumentChunk,
-        content: Content,
+        content: DocsContent,
         context_len:int
 ) -> str:
     start_index = chunk.start_index

@@ -1,4 +1,5 @@
 import asyncio
+from typing import List
 from urllib.parse import urljoin
 import html2text
 from app.databases.mongo_db import MongoDBDatabase
@@ -7,7 +8,7 @@ from bs4 import BeautifulSoup
 from markdownify import markdownify as md
 import requests
 
-from app.models.docs import Content
+from app.models.docs import DocsContent, Link
 
 
 async def _get_beautiful_soup(url: str) -> BeautifulSoup:
@@ -19,7 +20,7 @@ async def _get_beautiful_soup(url: str) -> BeautifulSoup:
     body = soup.find('article') or soup.find('body')
     return body
 
-async def get_content(url: str) -> str | None:
+async def _get_content(url: str) -> str | None:
     try:
         body = await _get_beautiful_soup(url)
         if not body:
@@ -47,7 +48,7 @@ async def get_content(url: str) -> str | None:
         return None
 
 
-async def html_to_markdown(url):
+async def _html_to_markdown(url):
     body = await _get_beautiful_soup(url)
 
     for tag in body.find_all(True):
@@ -64,21 +65,21 @@ async def html_to_markdown(url):
     return markdown_output
 
 
-async def extract_contents():
-    mdb = MongoDBDatabase()
-    await mdb.delete_collection("Content")
-    entries = await mdb.get_entries_dict("Links")
-    for entry in tqdm(entries):
-        link = entry["link"]
+async def extract_contents(docs_url:str,mdb: MongoDBDatabase):
+    link_objs = await mdb.get_entries(Link, {"base_url": docs_url})
+
+    for link_obj in tqdm(link_objs):
+        link = link_obj.link
         try:
-            content = await html_to_markdown(link)
+            content = await _html_to_markdown(link)
             if content is not None:
-                content = Content(
+                content = DocsContent(
+                    base_url=link_obj.base_url,
                     link=link,
                     content=content
                 )
+
                 await mdb.add_entry(content)
         except Exception as e:
+            await mdb.delete_entity(link_obj)
             print(f"An unexpected error occurred: {e}")
-
-# asyncio.run(extract_contents())

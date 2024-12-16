@@ -1,6 +1,21 @@
+from typing import Optional
+
 from app.databases.mongo_db import MongoEntry
 
-class Content(MongoEntry):
+class DocsUrl(MongoEntry):
+    url: str
+    active: bool
+
+class Link(MongoEntry):
+    base_url: str
+    prev_link: str
+    link: str
+    active: bool = False
+    color: Optional[str] = None
+
+
+class DocsContent(MongoEntry):
+    base_url: str
     link: str
     content: str
 
