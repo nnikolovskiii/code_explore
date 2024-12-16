@@ -1,5 +1,5 @@
 import asyncio
-from typing import List
+from typing import List, Dict
 
 from torch.utils.hipify.hipify_python import value
 
@@ -7,17 +7,19 @@ from app.databases.singletons import get_qdrant_db, get_mongo_db
 from app.llms.generic_chat import generic_chat
 from app.models.code import CodeChunk, GitUrl
 from app.models.docs import FinalDocumentChunk
+from app.stream_llms.hf_inference_stream import chat_with_hf_inference_stream
 
 
 def _get_chunk_tags(
         chunk: List[str]
-)->str:
+) -> str:
     chunk_tags = ""
     for i, chunk in enumerate(chunk):
         chunk_tags += f"""<chunk>\n{chunk}\n</chunk>"""
-        if i < len(chunk)-1:
+        if i < len(chunk) - 1:
             chunk_tags += "\n"
     return chunk_tags
+
 
 def chat_template(
         chunks: List[str],
@@ -33,6 +35,7 @@ Here is the question from the user:
 
 Your job is to provide a correct and detailed answer to the question. Break your answer into multiple step in order for the user to easily understand it.
 """
+
 
 async def retrieve_relevant_chunks(
         question: str
@@ -51,14 +54,22 @@ async def retrieve_relevant_chunks(
         filter={("active", "value"): True, ("url", "any"): git_urls}
     )
 
-async def chat(question: str)->str:
-    relevant_chunks = await retrieve_relevant_chunks(question)
+
+async def chat(
+        message: str,
+        system_message: str,
+        history: List[Dict[str, str]] = None,
+        stream: bool = False,
+):
+    relevant_chunks = await retrieve_relevant_chunks(message)
     print(relevant_chunks)
     print(len(relevant_chunks))
     chunk_contents = [chunk.content for chunk in relevant_chunks]
-    template = chat_template(chunk_contents, question)
-    response = await generic_chat(message=template, system_message="You are a expert code AI assistant which provides factually correct, detailed and step-by-step answers for users questions.")
-    print(response)
-    return response
-
-asyncio.run(chat("How do i make dependency injection using fastapi?"))
+    template = chat_template(chunk_contents, message)
+    async for data in chat_with_hf_inference_stream(
+        message=template,
+        system_message=system_message,
+        history=history,
+        stream=stream,
+    ):
+        yield data

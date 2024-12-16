@@ -59,6 +59,7 @@ async def activate_tmp_files(git_url: str, mdb: mdb_dep, qdb: qdb_dep):
     folders = await mdb.get_entries(Folder, doc_filter={"url": git_url}, collection_name="TempFolder")
     folder_paths = [folder.next for folder in folders]
     active_status = [folder.active for folder in folders]
+
     await change_active_files(
         file_dto=FileActiveListDto(
             file_paths=folder_paths,

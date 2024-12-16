@@ -27,30 +27,31 @@ async def extract_contents(folder_path: str, git_url: str):
         try:
             extension = _get_file_extension(file_path)
             content = _read_file(file_path)
-            no_root_path = file_path.split(root_git_path)[1]
-            file_name = no_root_path.split("/")[-1]
-            folder_path = no_root_path.split("/" + file_name)[0]
+            if content.strip() != "":
+                no_root_path = file_path.split(root_git_path)[1]
+                file_name = no_root_path.split("/")[-1]
+                folder_path = no_root_path.split("/" + file_name)[0]
 
-            folders = folder_path.split("/")
-            acc_folder = folders[0]
-            for folder in folders[1:]:
-                s.add((acc_folder, acc_folder + "/" + folder))
-                acc_folder += "/" + folder
+                folders = folder_path.split("/")
+                acc_folder = folders[0]
+                for folder in folders[1:]:
+                    s.add((acc_folder, acc_folder + "/" + folder))
+                    acc_folder += "/" + folder
 
-            if extension:
-                await mdb.add_entry(CodeContent(
-                    url=git_url,
-                    file_path=no_root_path,
-                    content=content,
-                    extension=extension
-                ))
+                if extension:
+                    await mdb.add_entry(CodeContent(
+                        url=git_url,
+                        file_path=no_root_path,
+                        content=content,
+                        extension=extension
+                    ))
 
-                await mdb.add_entry(Folder(
-                    url=git_url,
-                    prev=folder_path,
-                    next=no_root_path,
-                    is_folder=False
-                ))
+                    await mdb.add_entry(Folder(
+                        url=git_url,
+                        prev=folder_path,
+                        next=no_root_path,
+                        is_folder=False
+                    ))
 
         except Exception as e:
             print(e)
@@ -87,8 +88,8 @@ async def chunk_code(
                 file_path=content.file_path,
                 content_id=content.id,
                 content=text[0],
-                start_index=text[1][0],
-                end_index=text[1][1],
+                start_index=int(text[1][0]),
+                end_index=int(text[1][1]),
                 order=i,
                 code_len=len(texts)
             )
@@ -113,9 +114,11 @@ async def chunk_files(
 ) -> List[CodeChunk]:
     embedded_flags = await mdb.get_entries(CodeEmbeddingFlag, doc_filter={"url": git_url})
     embedded_files = {flag.file_path for flag in embedded_flags}
-    print(embedded_files)
 
     contents = []
+    print("loool")
+    print(file_paths)
+    print(embedded_files)
     for file_path in file_paths:
         if file_path not in embedded_files:
             content = await mdb.get_entry_from_col_value(
@@ -123,5 +126,6 @@ async def chunk_files(
                 column_value=file_path,
                 class_type=CodeContent
             )
+            print(content)
             contents.append(content)
     return await chunk_code(mdb, contents)

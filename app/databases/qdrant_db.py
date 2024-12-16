@@ -207,6 +207,8 @@ class QdrantDatabase:
     async def update_points(
         self, collection_name: str, ids: List[str], update: Dict[str, Any]
     ):
+        print(ids)
+        print(update)
         await self.client.set_payload(
             collection_name=collection_name,
             wait=True,

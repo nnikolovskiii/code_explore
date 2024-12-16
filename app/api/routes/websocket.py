@@ -3,7 +3,7 @@ import asyncio
 
 from fastapi import WebSocket
 
-from app.llms.hf_inference_chat import chat_with_hf_inference
+from app.chat.chat import chat
 import logging
 
 from app.stream_llms.hf_inference_stream import chat_with_hf_inference_stream
@@ -31,9 +31,9 @@ async def websocket_endpoint(websocket: WebSocket):
                     history.append({"role": "user", "content": assistant_messages[i]})
 
 
-            async for response_chunk in chat_with_hf_inference_stream(
+            async for response_chunk in chat(
                 message=message,
-                system_message="You are a helpful AI assistant.",
+                system_message="You are a expert code AI assistant which provides factually correct, detailed and step-by-step answers for users questions.",
                 history=history,
                 stream=True,
             ):
