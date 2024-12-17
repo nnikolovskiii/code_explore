@@ -89,6 +89,13 @@ async def check_prev_links(docs_url: str, mdb: MongoDBDatabase):
             link.prev_link = new_prev_link
             await mdb.update_entry(link)
 
+    base_link = await mdb.get_entry_from_col_value(
+        column_name="link",
+        column_value=docs_url if docs_url[-1] != "/" else docs_url[:-1],
+        class_type=Link,
+    )
+    await mdb.delete_entity(base_link)
+
 async def set_parent_flags(docs_url: str, mdb: MongoDBDatabase):
     links = await mdb.get_entries(Link, {"base_url": docs_url})
 
