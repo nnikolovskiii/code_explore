@@ -1,6 +1,4 @@
-import asyncio
 from collections import deque
-from typing import List
 from urllib.parse import urljoin
 from app.databases.mongo_db import MongoDBDatabase
 from bs4 import BeautifulSoup

@@ -1,13 +1,10 @@
-import asyncio
 import logging
-from typing import List, final
+from typing import List
 
-from bson import ObjectId
 
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.qdrant_db import QdrantDatabase
-from app.databases.singletons import get_mongo_db, get_qdrant_db
-from app.models.code import CodeChunk, CodeContent, CodeContext, CodeEmbeddingFlag, CodeActiveFlag, Folder
+from app.models.code import CodeChunk, CodeContext, CodeEmbeddingFlag, Folder
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)

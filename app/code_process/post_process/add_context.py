@@ -1,15 +1,11 @@
-import asyncio
 from typing import List
 
 from bson import ObjectId
 from tqdm import tqdm
 
 from app.databases.mongo_db import MongoDBDatabase
-from app.databases.singletons import get_mongo_db
 from app.llms.generic_chat import generic_chat
-from app.llms.json_response import get_json_response
-from app.models.code import CodeChunk, CodeContent, CodeContext, CodeEmbeddingFlag
-from app.models.docs import DocumentChunk, Context, Category, FinalDocumentChunk, DocsContent
+from app.models.code import CodeChunk, CodeContent, CodeContext
 
 
 def add_context_template(
@@ -28,8 +24,8 @@ Give a short succinct context to situate this code chunk within the overall code
 
 
 async def _get_surrounding_context(
-        chunk: DocumentChunk,
-        content: DocsContent,
+        chunk: CodeChunk,
+        content: CodeContent,
         context_len: int
 ) -> str:
     start_index = chunk.start_index

@@ -1,12 +1,9 @@
 import logging
 import os
-from typing import Union, Tuple
 
 from dotenv import load_dotenv
 from git import Repo, GitCommandError
 
-from app.databases.mongo_db import MongoDBDatabase
-from app.models.code import GitUrl
 
 async def clone_git_repo(
         git_url: str,

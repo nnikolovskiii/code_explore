@@ -42,7 +42,6 @@ async def get_files(prev_folder: str, mdb: mdb_dep):
             elif folder.active and not temp_active_dict[folder.next]:
                 folder.color = "red"
             elif folder.active and temp_active_dict[folder.next]:
-                print(folder.next)
                 folder.color = "blue"
             else:
                 folder.color = "white"
@@ -72,8 +71,7 @@ async def activate_tmp_files(git_url: str, mdb: mdb_dep, qdb: qdb_dep):
 
 
 @router.post("/update_file/")
-async def add_file(file_active_dto: FileActiveDto, mdb: mdb_dep):
-    print(file_active_dto)
+async def update_file(file_active_dto: FileActiveDto, mdb: mdb_dep):
     tmp_folder = await mdb.get_entry_from_col_value(
         column_name="next",
         column_value=file_active_dto.file_path,

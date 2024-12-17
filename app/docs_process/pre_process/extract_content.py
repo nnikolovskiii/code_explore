@@ -1,5 +1,3 @@
-import asyncio
-from typing import List
 from urllib.parse import urljoin
 import html2text
 from app.databases.mongo_db import MongoDBDatabase

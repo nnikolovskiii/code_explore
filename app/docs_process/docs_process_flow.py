@@ -58,13 +58,13 @@ async def change_active_files(
             update={"active": active_status},
         )
 
-
-asyncio.run(change_active_files(
-    DocsActiveListDto(
-        links=["https://fastapi.tiangolo.com/tutorial/body"],
-        active=[False]
-    ),
-    docs_url="https://fastapi.tiangolo.com/",
-    mdb=MongoDBDatabase(),
-    qdb=QdrantDatabase(),
-))
+#
+# asyncio.run(change_active_files(
+#     DocsActiveListDto(
+#         links=["https://fastapi.tiangolo.com/tutorial/body"],
+#         active=[True]
+#     ),
+#     docs_url="https://fastapi.tiangolo.com/",
+#     mdb=MongoDBDatabase(),
+#     qdb=QdrantDatabase(),
+# ))

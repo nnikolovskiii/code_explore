@@ -1,8 +1,6 @@
-import asyncio
 import os
 from typing import List
 
-from bson import ObjectId
 from datasets import tqdm
 from dotenv import load_dotenv
 
@@ -10,7 +8,6 @@ from app.code_process.pre_process.file_utils import _get_all_file_paths, _get_fi
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
 from app.models.code import CodeContent, CodeChunk, Folder, CodeEmbeddingFlag
-from app.models.splitters.base_splitter import Language
 from app.models.splitters.text_splitters import TextSplitter
 
 
