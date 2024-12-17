@@ -49,7 +49,7 @@ async def get_links(prev_link: str, mdb: mdb_dep):
             else:
                 link.color = "white"
 
-    return {"folders": links, }
+    return {"links": links, }
 
 @router.get("/activate_tmp_files/")
 async def activate_tmp_files(docs_url: str, mdb: mdb_dep, qdb: qdb_dep):

@@ -89,6 +89,18 @@ async def check_prev_links(docs_url: str, mdb: MongoDBDatabase):
             link.prev_link = new_prev_link
             await mdb.update_entry(link)
 
+async def set_parent_flags(docs_url: str, mdb: MongoDBDatabase):
+    links = await mdb.get_entries(Link, {"base_url": docs_url})
+
+    for link in tqdm(links):
+        first_link_obj = await mdb.get_entry_from_col_value(
+            column_name="prev_link",
+            column_value=link.link,
+            class_type=Link,
+        )
+        if first_link_obj is not None:
+            link.is_parent = True
+            await mdb.update_entry(link)
 # asyncio.run(check_prev_links(docs_url="https://fastapi.tiangolo.com/", mdb=MongoDBDatabase()))
 
 

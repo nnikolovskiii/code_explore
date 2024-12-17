@@ -10,6 +10,7 @@ class Link(MongoEntry):
     base_url: str
     prev_link: str
     link: str
+    is_parent: bool = False
     active: bool = False
     color: Optional[str] = None
 
