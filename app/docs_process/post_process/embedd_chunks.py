@@ -6,6 +6,7 @@ from app.databases.qdrant_db import QdrantDatabase
 from tqdm import tqdm
 
 from app.models.docs import DocsChunk, DocsContext, DocsEmbeddingFlag, Link
+from app.models.process import create_process, increment_process, finish_process
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ async def create_final_chunks(
 
     count_context = 0
     count_all = 0
-    for chunk in tqdm(chunks, total=len(chunks)):
+    for i,chunk in enumerate(chunks):
         content = chunk.content
 
         if chunk.id in contexts_dict:
@@ -68,8 +69,13 @@ async def embedd_chunks(
         chunks: List[DocsChunk],
 ):
     links_set = {chunk.link for chunk in chunks}
+    process = await create_process(url = chunks[0].base_url,end = len(chunks),process_type = "embedd",mdb = mdb, type="docs")
 
-    for chunk in tqdm(chunks):
+
+    for i,chunk in enumerate(chunks):
+        if i % 10 == 0:
+            await increment_process(process, mdb)
+
         await qdb.embedd_and_upsert_record(
             value=chunk.content,
             entity=chunk,
@@ -93,3 +99,5 @@ async def embedd_chunks(
             await mdb.update_entry(
                 folder
             )
+
+    await finish_process(process, mdb)

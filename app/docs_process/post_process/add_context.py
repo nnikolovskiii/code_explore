@@ -3,9 +3,10 @@ from typing import List
 from bson import ObjectId
 from tqdm import tqdm
 
-from app.databases.mongo_db import MongoDBDatabase
+from app.databases.mongo_db import MongoDBDatabase, MongoEntry
 from app.llms.json_response import get_json_response
 from app.models.docs import DocsContent, DocsChunk, DocsEmbeddingFlag, DocsContext
+from app.models.process import Process, create_process, increment_process, finish_process
 
 
 def add_context_template(
@@ -66,17 +67,22 @@ async def add_context(
         context=response["context"],
     ))
 
-
 async def add_context_chunks(
         mdb: MongoDBDatabase,
         chunks: List[DocsChunk],
 ):
     filtered_chunks = [chunk for chunk in chunks if chunk.doc_len != 1]
-    for chunk in tqdm(filtered_chunks):
+    process = await create_process(url = chunks[0].base_url,end = len(filtered_chunks),process_type = "add_context",mdb = mdb, type="docs")
+
+    for i, chunk in enumerate(filtered_chunks):
         try:
-            await add_context(chunk, 8000, mdb)
+            if i % 10 == 0:
+                await increment_process(process, mdb, i)
+            await add_context(chunk,8000, mdb)
         except Exception as e:
             print(e)
+
+    await finish_process(process, mdb)
 
 async def add_context_links(
         mdb: MongoDBDatabase,
