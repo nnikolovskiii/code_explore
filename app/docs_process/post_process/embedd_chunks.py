@@ -68,6 +68,8 @@ async def embedd_chunks(
         qdb: QdrantDatabase,
         chunks: List[DocsChunk],
 ):
+    if len(chunks) == 0:
+        return
     links_set = {chunk.link for chunk in chunks}
     process = await create_process(url = chunks[0].base_url,end = len(chunks),process_type = "embedd",mdb = mdb, type="docs")
 

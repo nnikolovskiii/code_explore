@@ -72,23 +72,7 @@ async def activate_tmp_files(docs_url: str, mdb: mdb_dep, qdb: qdb_dep):
 
 @router.post("/update_link/")
 async def update_link(docs_active_dto: DocsActiveDto, mdb: mdb_dep):
-    tmp_link = await mdb.get_entry_from_col_value(
-        column_name="link",
-        column_value=docs_active_dto.link,
-        class_type=Link,
-        collection_name="TempLink",
-    )
-    if tmp_link is None:
-        link = await mdb.get_entry_from_col_value(
-            column_name="link",
-            column_value=docs_active_dto.link,
-            class_type=Link,
-        )
-        link.active = docs_active_dto.active
-        await mdb.add_entry(link, "TempLink")
-    else:
-        tmp_link.active = docs_active_dto.active
-        await mdb.update_entry(tmp_link, "TempLink")
+    await add_update_tmp_link(docs_active_dto.link, docs_active_dto.active, mdb)
 
 @router.get("/get_docs_urls/")
 async def get_git_urls(mdb: mdb_dep):
@@ -97,3 +81,41 @@ async def get_git_urls(mdb: mdb_dep):
         return {"docs_urls": docs_urls}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/select_all_links/")
+async def select_all_links(prev_link: str, select:bool, mdb: mdb_dep):
+    links = await mdb.get_entries(Link, doc_filter={"prev_link": prev_link})
+    while len(links) > 0:
+        link = links.pop()
+        await add_update_tmp_link(link.link, select, mdb)
+        links.extend(await mdb.get_entries(Link, doc_filter={"prev_link": link.link}))
+
+
+    return {"links": links, }
+
+@router.get("/select_docs/")
+async def select_all_links(docs_url:str, select:bool, mdb: mdb_dep):
+    links = await mdb.get_entries(Link, doc_filter={"base_url": docs_url})
+    for link in links:
+        await add_update_tmp_link(link.link, select, mdb)
+
+    return {"links": links, }
+
+async def add_update_tmp_link(link:str,active:bool,mdb:MongoDBDatabase):
+    tmp_link = await mdb.get_entry_from_col_value(
+        column_name="link",
+        column_value=link,
+        class_type=Link,
+        collection_name="TempLink",
+    )
+    if tmp_link is None:
+        link = await mdb.get_entry_from_col_value(
+            column_name="link",
+            column_value=link,
+            class_type=Link,
+        )
+        link.active = active
+        await mdb.add_entry(link, "TempLink")
+    else:
+        tmp_link.active = active
+        await mdb.update_entry(tmp_link, "TempLink")

@@ -71,6 +71,9 @@ async def add_context_chunks(
         mdb: MongoDBDatabase,
         chunks: List[DocsChunk],
 ):
+    if len(chunks) == 0:
+        return
+
     filtered_chunks = [chunk for chunk in chunks if chunk.doc_len != 1]
     process = await create_process(url = chunks[0].base_url,end = len(filtered_chunks),process_type = "add_context",mdb = mdb, type="docs")
 
