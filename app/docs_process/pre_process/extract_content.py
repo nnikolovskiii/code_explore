@@ -70,14 +70,15 @@ async def extract_contents(docs_url:str,mdb: MongoDBDatabase):
         link = link_obj.link
         try:
             content = await _html_to_markdown(link)
-            if content is not None:
-                content = DocsContent(
-                    base_url=link_obj.base_url,
-                    link=link,
-                    content=content
-                )
+            if content.strip() != "":
+                if content is not None:
+                    content = DocsContent(
+                        base_url=link_obj.base_url,
+                        link=link,
+                        content=content
+                    )
 
-                await mdb.add_entry(content)
+                    await mdb.add_entry(content)
         except Exception as e:
             await mdb.delete_entity(link_obj)
             print(f"An unexpected error occurred: {e}")

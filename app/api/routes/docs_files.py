@@ -56,6 +56,8 @@ async def activate_tmp_files(docs_url: str, mdb: mdb_dep, qdb: qdb_dep):
     links = await mdb.get_entries(Link, doc_filter={"base_url": docs_url}, collection_name="TempLink")
     link_strs = [link.link for link in links]
     active_status = [link.active for link in links]
+    print(link_strs)
+    print(active_status)
 
     await change_active_files(
         docs_dto=DocsActiveListDto(

@@ -74,7 +74,7 @@ async def embedd_chunks(
 
     for i,chunk in enumerate(chunks):
         if i % 10 == 0:
-            await increment_process(process, mdb)
+            await increment_process(process, mdb, i)
 
         await qdb.embedd_and_upsert_record(
             value=chunk.content,

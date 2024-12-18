@@ -10,6 +10,7 @@ from app.models.splitters.text_splitters import TextSplitter
 async def chunk_docs(
         mdb: MongoDBDatabase,
         docs_contents: List[DocsContent],
+        from_links: bool = False
 ):
     text_splitter = TextSplitter(
         chunk_size=1000,
@@ -24,7 +25,7 @@ async def chunk_docs(
         texts = text_splitter.split_text(content.content)
 
         # Important: change later
-        if len(texts) < 30:
+        if from_links or (len(texts) < 50 and not from_links):
             for i, text in enumerate(texts):
                 doc_chunk = DocsChunk(
                     base_url=content.base_url,
@@ -56,4 +57,4 @@ async def chunk_links(
                 class_type=DocsContent
             )
             contents.append(content)
-    await chunk_docs(mdb, contents)
+    await chunk_docs(mdb, contents, from_links=True)

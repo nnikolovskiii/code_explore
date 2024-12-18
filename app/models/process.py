@@ -39,4 +39,5 @@ async def finish_process(
         mdb:MongoDBDatabase
 ):
     process.finished = True
+    process.curr = process.end
     await mdb.update_entry(process)
