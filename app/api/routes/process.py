@@ -1,5 +1,6 @@
 from typing import Annotated
 
+from bson import ObjectId
 from fastapi import HTTPException, APIRouter, Depends
 
 from app.databases.mongo_db import MongoDBDatabase
@@ -18,17 +19,29 @@ mdb_dep = Annotated[MongoDBDatabase, Depends(get_mongo_db)]
 qdb_dep = Annotated[QdrantDatabase, Depends(get_qdrant_db)]
 
 
-@router.get("/get_processes/")
-async def get_git_urls(mdb: mdb_dep):
+@router.get("/get_finished_processes/")
+async def get_finished_processes(mdb: mdb_dep):
     try:
-        docs_processes_ongoing = await mdb.get_entries(Process, doc_filter={"finished": False, "type": "docs"})
-        code_processes_ongoing = await mdb.get_entries(Process, doc_filter={"finished": False, "type": "code"})
-        docs_processes_finished = await mdb.get_entries(Process, doc_filter={"finished": True, "type": "docs"})
-        code_processes_finished = await mdb.get_entries(Process, doc_filter={"finished": True, "type": "code"})
+        finished_processes = await mdb.get_entries(Process, doc_filter={"finished": True,})
 
-        return {"code_processes_ongoing": code_processes_ongoing,
-                "docs_processes_ongoing": docs_processes_ongoing,
-                "code_processes_finished": code_processes_finished,
-                "docs_processes_finished": docs_processes_finished}
+        return {"processes": finished_processes}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/get_ongoing_processes/")
+async def get_ongoing_processes(mdb: mdb_dep):
+    try:
+        ongoing_processes = await mdb.get_entries(Process, doc_filter={"finished": False,})
+
+        return {"processes": ongoing_processes}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/refresh_progress/")
+async def refresh_progress(process_id:str, mdb: mdb_dep):
+    try:
+        process = await mdb.get_entry(ObjectId(process_id), Process)
+        return process
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
