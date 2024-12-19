@@ -34,7 +34,6 @@ async def traverse_links(docs_url: str, mdb: MongoDBDatabase):
     links = deque([docs_url])
 
     link = docs_url if docs_url[-1] != "/" else docs_url[:-1]
-
     link_obj = Link(
         base_url=docs_url,
         prev_link=link,

@@ -14,6 +14,7 @@ from app.docs_process.pre_process.extract_content import extract_contents
 from app.docs_process.pre_process.traverse_sites import traverse_links, check_prev_links, set_parent_flags
 from app.models.docs import DocsUrl, Link, DocsContent, DocsChunk, DocsContext, DocsEmbeddingFlag
 from app.models.process import Process
+from app.models.simple_process import create_simple_process, finish_simple_process, SimpleProcess
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -24,7 +25,7 @@ qdb_dep = Annotated[QdrantDatabase, Depends(get_qdrant_db)]
 
 
 @router.get("/extract_docs/")
-async def extract_library(docs_url: str, override: bool, mdb: mdb_dep, qdb: qdb_dep):
+async def extract_library(docs_url: str, override: bool, selector: str, mdb: mdb_dep, qdb: qdb_dep,selector_attrs: str = None):
     try:
         if override:
             pass
@@ -36,18 +37,37 @@ async def extract_library(docs_url: str, override: bool, mdb: mdb_dep, qdb: qdb_
             await qdb.delete_records(collection_name="DocsChunk", doc_filter={("base_url", "value"): docs_url})
             await mdb.delete_entries(DocsEmbeddingFlag, doc_filter={"base_url": docs_url})
             await mdb.delete_entries(Process, doc_filter={"url": docs_url})
+            await mdb.delete_entries(SimpleProcess, doc_filter={"url": docs_url})
             await mdb.delete_entries(Link, collection_name="TempLink", doc_filter={"base_url": docs_url})
 
         urls = await mdb.get_entries(DocsUrl, doc_filter={"url": docs_url})
         if len(urls) == 0:
             await mdb.add_entry(DocsUrl(url=docs_url, active=True))
+            main_process = await create_simple_process(url=docs_url, mdb=mdb, process_type="main", type="docs")
+
+            process = await create_simple_process(url=docs_url, mdb=mdb, process_type="traverse", type="docs")
             await traverse_links(docs_url, mdb)
-            await extract_contents(docs_url, mdb)
+            await finish_simple_process(process,mdb)
+
+            process = await create_simple_process(url=docs_url, mdb=mdb, process_type="extract", type="docs")
+            await extract_contents(docs_url,selector, selector_attrs, mdb)
+            await finish_simple_process(process,mdb)
+
+            process = await create_simple_process(url=docs_url, mdb=mdb, process_type="check", type="docs")
             await check_prev_links(docs_url, mdb)
+            await finish_simple_process(process,mdb)
+
+            process = await create_simple_process(url=docs_url, mdb=mdb, process_type="parents", type="docs")
             await set_parent_flags(docs_url, mdb)
+            await finish_simple_process(process,mdb)
+
+            await finish_simple_process(main_process,mdb)
+
             return {"status": "success", "message": "Fetched links and processed successfully."}
         else:
             return {"status": "success", "message": "Links already fetched and processed."}
     except Exception as e:
         logging.exception("Error cloning library")
         raise HTTPException(status_code=500, detail=str(e))
+
+
