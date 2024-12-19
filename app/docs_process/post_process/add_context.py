@@ -1,12 +1,12 @@
+import logging
 from typing import List
 
 from bson import ObjectId
-from tqdm import tqdm
 
-from app.databases.mongo_db import MongoDBDatabase, MongoEntry
+from app.databases.mongo_db import MongoDBDatabase
 from app.llms.json_response import get_json_response
 from app.models.docs import DocsContent, DocsChunk, DocsEmbeddingFlag, DocsContext
-from app.models.process import Process, create_process, increment_process, finish_process
+from app.models.process import  create_process, increment_process, finish_process
 
 
 def add_context_template(
@@ -67,37 +67,70 @@ async def add_context(
         context=response["context"],
     ))
 
-async def add_context_chunks(
-        mdb: MongoDBDatabase,
-        chunks: List[DocsChunk],
-):
-    if len(chunks) == 0:
-        return
-
-    filtered_chunks = [chunk for chunk in chunks if chunk.doc_len != 1]
-    process = await create_process(url = chunks[0].base_url,end = len(filtered_chunks),process_type = "add_context",mdb = mdb, type="docs")
-
-    for i, chunk in enumerate(filtered_chunks):
-        try:
-            if i % 10 == 0:
-                await increment_process(process, mdb, i)
-            await add_context(chunk,8000, mdb)
-        except Exception as e:
-            print(e)
-
-    await finish_process(process, mdb)
-
 async def add_context_links(
         mdb: MongoDBDatabase,
         links: List[str],
         docs_url: str,
 ):
-    embedded_flags = await mdb.get_entries(DocsEmbeddingFlag, doc_filter={"base_url": docs_url})
-    embedded_links = {flag.link for flag in embedded_flags}
+    process = await create_process(
+        url=docs_url,
+        end= await _get_add_context_length(mdb, links),
+        process_type = "context",
+        mdb = mdb,
+        type = "docs"
+    )
 
-    chunks = []
+    count = 0
     for link in links:
-        if link not in embedded_links:
-            link_chunks = await mdb.get_entries(DocsChunk, doc_filter={"link": link})
-            chunks.extend(link_chunks)
-    await add_context_chunks(mdb, chunks)
+        flag = await mdb.get_entry_from_col_value(
+            column_name="link",
+            column_value=link,
+            class_type=DocsEmbeddingFlag
+        )
+
+        if flag is None:
+            chunks = await mdb.get_entries(DocsChunk, doc_filter={"link": link})
+            chunks = [chunk for chunk in chunks if chunk.doc_len != 1]
+            for chunk in chunks:
+                await increment_process(process, mdb, count,5)
+
+                context = await mdb.get_entry_from_col_value(
+                    column_name="chunk_id",
+                    column_value=chunk.id,
+                    class_type=DocsContext
+                )
+                if context is None:
+                    try:
+                        await add_context(chunk, 8000, mdb)
+                    except Exception as e:
+                        logging.error(e)
+                    count += 1
+
+    await finish_process(process, mdb)
+
+
+async def _get_add_context_length(
+        mdb: MongoDBDatabase,
+        links: List[str],
+) -> int:
+    count = 0
+    for link in links:
+        flag = await mdb.get_entry_from_col_value(
+            column_name="link",
+            column_value=link,
+            class_type=DocsEmbeddingFlag
+        )
+
+        if flag is None:
+            chunks = await mdb.get_entries(DocsChunk, doc_filter={"link": link})
+            chunks = [chunk for chunk in chunks if chunk.doc_len != 1]
+            for chunk in chunks:
+                context = await mdb.get_entry_from_col_value(
+                    column_name="chunk_id",
+                    column_value=chunk.id,
+                    class_type=DocsContext
+                )
+                if context is None:
+                    count += 1
+
+    return count

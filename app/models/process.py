@@ -29,10 +29,12 @@ async def create_process(
 async def increment_process(
         process:Process,
         mdb:MongoDBDatabase,
-        num: int
+        num: int,
+        step:int = 10
 ):
-    process.curr = num
-    await mdb.update_entry(process)
+    if num % step == 0:
+        process.curr = num
+        await mdb.update_entry(process)
 
 async def finish_process(
         process:Process,
