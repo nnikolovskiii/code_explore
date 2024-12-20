@@ -25,8 +25,17 @@ qdb_dep = Annotated[QdrantDatabase, Depends(get_qdrant_db)]
 
 
 @router.get("/extract_docs/")
-async def extract_library(docs_url: str, override: bool, selector: str, mdb: mdb_dep, qdb: qdb_dep,selector_attrs: str = None):
+async def extract_library(
+        docs_url: str,
+        override: bool,
+        selector: str,
+        pattern: str,
+        mdb: mdb_dep,
+        qdb: qdb_dep,
+        selector_attrs: str = None
+):
     try:
+        docs_url = docs_url[:-1] if docs_url.endswith("/") else docs_url
         if override:
             pass
             await mdb.delete_entries(DocsContent, doc_filter={"base_url": docs_url})
@@ -46,7 +55,7 @@ async def extract_library(docs_url: str, override: bool, selector: str, mdb: mdb
             main_process = await create_simple_process(url=docs_url, mdb=mdb, process_type="main", type="docs")
 
             process = await create_simple_process(url=docs_url, mdb=mdb, process_type="traverse", type="docs")
-            await traverse_links(docs_url, mdb)
+            await traverse_links(docs_url,pattern, mdb)
             await finish_simple_process(process,mdb)
 
             process = await create_simple_process(url=docs_url, mdb=mdb, process_type="extract", type="docs")

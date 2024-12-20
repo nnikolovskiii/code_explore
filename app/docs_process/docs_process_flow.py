@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from typing import List
 
 from pydantic import BaseModel
@@ -23,8 +24,11 @@ async def process_code_files(
         mdb: MongoDBDatabase,
         qdb: QdrantDatabase,
 ):
+    logging.info("chunk_links")
     await chunk_links(links=links, docs_url=docs_url, mdb=mdb)
+    logging.info("add_context_links")
     await add_context_links(mdb=mdb, links=links, docs_url=docs_url)
+    logging.info("embedd_chunks")
     await embedd_chunks(mdb=mdb, qdb=qdb, links=links, docs_url=docs_url)
 
 

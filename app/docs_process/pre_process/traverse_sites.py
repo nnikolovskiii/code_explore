@@ -4,6 +4,7 @@ from app.databases.mongo_db import MongoDBDatabase
 from bs4 import BeautifulSoup
 import requests
 from tqdm import tqdm
+import re
 
 from app.models.docs import Link
 
@@ -29,7 +30,7 @@ def _get_neighbouring_links(url: str) -> set:
         return set()
 
 
-async def traverse_links(docs_url: str, mdb: MongoDBDatabase):
+async def traverse_links(docs_url: str, pattern:str, mdb: MongoDBDatabase):
     checked = set()
     links = deque([docs_url])
 
@@ -41,13 +42,15 @@ async def traverse_links(docs_url: str, mdb: MongoDBDatabase):
     )
     await mdb.add_entry(link_obj)
 
+    regex = re.compile(pattern)
+
     while len(links) > 0:
         url = links.popleft()
         checked.add(url)
 
         neighbours = _get_neighbouring_links(url)
         for link in neighbours:
-            if docs_url in link and link not in checked:
+            if docs_url in link and link not in checked and not regex.search(link):
                 checked.add(link)
                 links.append(link)
 

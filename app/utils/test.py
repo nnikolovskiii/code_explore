@@ -1,9 +1,13 @@
-from pydantic import BaseModel
+import re
 
 
-class Counter(BaseModel):
-    lol1: str
+def my_function(pattern):
+    regex = re.compile(pattern)
+
+    if regex.search("docs/optimum/v1.22.0/en/onnxruntime/quickstart"):
+        print("lol")
+    else:
+        print("lol1")
 
 
-dict = {"lol1": "lol", "lol2": "lol"}
-print(Counter(**dict))
+my_function(r"v\d+(?:\.\d+)+")

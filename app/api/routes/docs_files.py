@@ -56,8 +56,6 @@ async def activate_tmp_files(docs_url: str, mdb: mdb_dep, qdb: qdb_dep):
     links = await mdb.get_entries(Link, doc_filter={"base_url": docs_url}, collection_name="TempLink")
     link_strs = [link.link for link in links]
     active_status = [link.active for link in links]
-    print(link_strs)
-    print(active_status)
 
     await change_active_files(
         docs_dto=DocsActiveListDto(
@@ -119,3 +117,18 @@ async def add_update_tmp_link(link:str,active:bool,mdb:MongoDBDatabase):
     else:
         tmp_link.active = active
         await mdb.update_entry(tmp_link, "TempLink")
+
+class DocsUrlDto(BaseModel):
+    docs_urls: List[str]
+    active: List[bool]
+
+@router.post("/change_active_repos/")
+async def change_active_repos(docs_url_dto: DocsUrlDto ,mdb: mdb_dep):
+    for docs_url, active_status in zip(docs_url_dto.docs_urls, docs_url_dto.active):
+        docs_url_obj = await mdb.get_entry_from_col_value(
+            column_name="url",
+            column_value=docs_url,
+            class_type=DocsUrl
+        )
+        docs_url_obj.active = active_status
+        await mdb.update_entry(docs_url_obj)
