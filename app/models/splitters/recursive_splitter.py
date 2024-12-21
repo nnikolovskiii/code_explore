@@ -131,7 +131,6 @@ class RecursiveCharacterTextSplitter(TextSplitter):
             self._separators = ["\n\n", "\n", ".", "!", "?", ",", " "]
 
     def split_text(self, text: str) -> List[str]:
-        print(self._separators)
         return self._split_text(text, self._separators)
 
     def get_language(self, extension: str)->Language|None:

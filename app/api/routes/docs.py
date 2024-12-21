@@ -29,9 +29,9 @@ async def extract_library(
         docs_url: str,
         override: bool,
         selector: str,
-        pattern: str,
         mdb: mdb_dep,
         qdb: qdb_dep,
+        pattern: str = None,
         selector_attrs: str = None
 ):
     try:

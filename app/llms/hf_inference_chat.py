@@ -35,7 +35,7 @@ async def chat_with_hf_inference(
         async with session.post(url, json=payload) as response:
             if response.status == 200:
                 data = await response.json()
+                print(data['choices'][0]['message']['content'])
                 return data['choices'][0]['message']['content']
             else:
                 raise Exception(f"Error {response.status}: {response.reason}")
-

@@ -22,6 +22,7 @@ def _get_neighbouring_links(url: str) -> set:
         full_links = set()
         for link in links:
             li = link["href"].split("#")
+            print(b_url, li[0])
             full_links.add(urljoin(b_url, li[0]))
 
         return full_links
@@ -42,7 +43,9 @@ async def traverse_links(docs_url: str, pattern:str, mdb: MongoDBDatabase):
     )
     await mdb.add_entry(link_obj)
 
-    regex = re.compile(pattern)
+    regex = None
+    if pattern is not None:
+        regex = re.compile(pattern)
 
     while len(links) > 0:
         url = links.popleft()
@@ -50,7 +53,10 @@ async def traverse_links(docs_url: str, pattern:str, mdb: MongoDBDatabase):
 
         neighbours = _get_neighbouring_links(url)
         for link in neighbours:
-            if docs_url in link and link not in checked and not regex.search(link):
+            not_in_regex = True
+            if pattern is not None:
+                not_in_regex = not regex.search(link)
+            if docs_url in link and link not in checked and not_in_regex:
                 checked.add(link)
                 links.append(link)
 

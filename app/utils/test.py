@@ -1,13 +1,15 @@
-import re
+import asyncio
+
+from app.databases.singletons import get_mongo_db
+from app.models.docs import DocsChunk, DocsEmbeddingFlag, DocsContent, DocsContext
 
 
-def my_function(pattern):
-    regex = re.compile(pattern)
+async def lol():
+    mdb = await get_mongo_db()
+    # await mdb.create_index("link", DocsChunk)
+    # await mdb.create_index("link", DocsEmbeddingFlag)
+    # await mdb.create_index("link", DocsContent)
+    await mdb.create_index("chunk_id", DocsContext)
 
-    if regex.search("docs/optimum/v1.22.0/en/onnxruntime/quickstart"):
-        print("lol")
-    else:
-        print("lol1")
 
-
-my_function(r"v\d+(?:\.\d+)+")
+asyncio.run(lol())

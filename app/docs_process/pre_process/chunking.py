@@ -48,43 +48,46 @@ async def chunk_links(
 
     process = await create_process(
         url=docs_url,
-        end=await _get_chunk_links_length(links, mdb),
+        end=await _get_chunk_links_length(links, docs_url, mdb),
         process_type="chunk",
         mdb=mdb,
         type="docs"
     )
 
+    links = await mdb.get_entries_dict(
+        "ProcessLink",
+        doc_filter={"url": docs_url, "process": "chunk"})
+
     count = 0
     for link in links:
-        flag = await mdb.get_entry_from_col_value(
+        link = link["link"]
+
+        if count % 100 == 0:
+            logging.info(count)
+        await increment_process(process, mdb, count, 10)
+        content = await mdb.get_entry_from_col_value(
             column_name="link",
             column_value=link,
-            class_type=DocsEmbeddingFlag
+            class_type=DocsContent
         )
-
-        chunk = await mdb.get_entry_from_col_value(
-            column_name="link",
-            column_value=link,
-            class_type=DocsChunk
-        )
-
-        if chunk is None and flag is None:
-            await increment_process(process, mdb, count, 10)
-            content = await mdb.get_entry_from_col_value(
-                column_name="link",
-                column_value=link,
-                class_type=DocsContent
-            )
-            try:
-                await chunk_content(mdb, content, text_splitter, True)
-            except Exception as e:
-                logging.error(e)
-            count+=1
+        try:
+            await chunk_content(mdb, content, text_splitter, True)
+        except Exception as e:
+            logging.error(e)
+        count += 1
     await finish_process(process, mdb)
+    await mdb.delete_entries(
+        class_type=DocsChunk,
+        collection_name="ProcessLink",
+        doc_filter={"url": docs_url, "process": "chunk"})
 
 
-async def _get_chunk_links_length(links:List[str], mdb: MongoDBDatabase) -> int:
+async def _get_chunk_links_length(links: List[str], docs_url: str, mdb: MongoDBDatabase) -> int:
     count = 0
+    await mdb.delete_entries(
+        class_type=DocsChunk,
+        collection_name="ProcessLink",
+        doc_filter={"url": docs_url, "process": "chunk"})
     for link in links:
         flag = await mdb.get_entry_from_col_value(
             column_name="link",
@@ -97,8 +100,9 @@ async def _get_chunk_links_length(links:List[str], mdb: MongoDBDatabase) -> int:
             column_value=link,
             class_type=DocsChunk
         )
-
         if chunk is None and flag is None:
+            logging.info(count)
             count += 1
+            await mdb.add_entry_dict({"link": link, "process": "chunk", "url": docs_url}, "ProcessLink")
 
     return count
