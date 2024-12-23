@@ -54,18 +54,22 @@ async def extract_library(
             await mdb.add_entry(DocsUrl(url=docs_url, active=True))
             main_process = await create_simple_process(url=docs_url, mdb=mdb, process_type="main", type="docs")
 
+            logging.info("traverse")
             process = await create_simple_process(url=docs_url, mdb=mdb, process_type="traverse", type="docs")
             await traverse_links(docs_url,pattern, mdb)
             await finish_simple_process(process,mdb)
 
+            logging.info("extract")
             process = await create_simple_process(url=docs_url, mdb=mdb, process_type="extract", type="docs")
             await extract_contents(docs_url,selector, selector_attrs, mdb)
             await finish_simple_process(process,mdb)
 
+            logging.info("check")
             process = await create_simple_process(url=docs_url, mdb=mdb, process_type="check", type="docs")
             await check_prev_links(docs_url, mdb)
             await finish_simple_process(process,mdb)
 
+            logging.info("parents")
             process = await create_simple_process(url=docs_url, mdb=mdb, process_type="parents", type="docs")
             await set_parent_flags(docs_url, mdb)
             await finish_simple_process(process,mdb)
