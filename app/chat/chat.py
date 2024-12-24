@@ -1,3 +1,4 @@
+import asyncio
 from typing import List, Dict
 
 from app.databases.singletons import get_qdrant_db, get_mongo_db
@@ -40,15 +41,15 @@ async def retrieve_relevant_chunks(
     qdb = await get_qdrant_db()
     mdb = await get_mongo_db()
 
-    git_objs = await mdb.get_entries(DocsUrl, doc_filter={"active": True})
-    git_urls = [git_obj.url for git_obj in git_objs]
+    docs_objs = await mdb.get_entries(DocsUrl, doc_filter={"active": True})
+    docs_urls = [docs_obj.url for docs_obj in docs_objs]
 
     return await qdb.retrieve_similar_entries(
         value=question,
         class_type=DocsChunk,
         score_threshold=0.0,
         top_k=10,
-        filter={("active", "value"): True}
+        filter={("active", "value"): True, ("base_url", "any") : docs_urls}
     )
 
 
@@ -59,10 +60,6 @@ async def chat(
         stream: bool = False,
 ):
     relevant_chunks = await retrieve_relevant_chunks(message)
-    print("MUSTAAAAAAAAAAAAARD")
-    print(relevant_chunks)
-    print(len(relevant_chunks))
-    print("MUSTAAAAAAAAAAAAARD")
     chunk_contents = [chunk.content for chunk in relevant_chunks]
     template = chat_template(chunk_contents, message)
     async for data in chat_with_hf_inference_stream(

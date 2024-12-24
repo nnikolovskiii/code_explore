@@ -10,6 +10,7 @@ import logging
 from app.databases.qdrant_db import QdrantDatabase
 from app.databases.singletons import get_mongo_db, get_qdrant_db
 from app.models.process import Process
+from app.models.simple_process import SimpleProcess
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -45,3 +46,12 @@ async def refresh_progress(process_id:str, mdb: mdb_dep):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.get("/get_pre_processes/")
+async def get_pre_processes(url:str, mdb: mdb_dep):
+    try:
+        process_objs = await mdb.get_entries(SimpleProcess, doc_filter={"url": url})
+        process_dict = {process_obj.process_type: process_obj.finished for process_obj in process_objs}
+        return process_dict
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
