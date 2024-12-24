@@ -31,7 +31,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     history.append({"role": "user", "content": assistant_messages[i]})
 
 
-            async for response_chunk in chat_with_hf_inference_stream(
+            async for response_chunk in chat(
                 message=message,
                 system_message="You are a expert code AI assistant which provides factually correct, detailed and step-by-step answers for users questions.",
                 history=history,

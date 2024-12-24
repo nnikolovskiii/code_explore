@@ -13,6 +13,7 @@ class Link(MongoEntry):
     is_parent: bool = False
     active: bool = False
     color: Optional[str] = None
+    processed: bool = False
 
 
 class DocsContent(MongoEntry):
@@ -29,6 +30,8 @@ class DocsChunk(MongoEntry):
     end_index: int
     order: int
     doc_len: int
+    active: bool = False
+    processed: bool = False
 
 class DocsEmbeddingFlag(MongoEntry):
     base_url: str

@@ -108,7 +108,6 @@ async def add_context_links(
                 break
 
         count += 1
-        logging.info(count)
 
 
     await finish_process(process, mdb)
@@ -140,8 +139,6 @@ async def _get_add_context_length(
             chunks = await mdb.get_entries(DocsChunk, doc_filter={"link": link})
             chunks = [chunk for chunk in chunks if chunk.doc_len != 1]
             for chunk in chunks:
-                if count == 100:
-                    return count
                 context = await mdb.get_entry_from_col_value(
                     column_name="chunk_id",
                     column_value=chunk.id,

@@ -1,3 +1,4 @@
+import asyncio
 from typing import Optional, Dict, Any, List, Tuple
 
 from qdrant_client.conversions.common_types import Record
@@ -36,3 +37,25 @@ async def update_records(
         function=process_records,
         filter=filter,
     )
+
+async def _print_records(
+        qdb: QdrantDatabase,
+        collection_name: str,
+        filter: Optional[Dict[Tuple[str, str], Any]] = None,
+):
+    async def print_records(records: List[Record]):
+        print(len(records))
+
+    await qdb.transform_all(
+        collection_name=collection_name,
+        function=print_records,
+        filter=filter,
+    )
+
+async def _test_print_records():
+    qdb = QdrantDatabase()
+    for link in ["https://fastapi.tiangolo.com/python-types", "https://fastapi.tiangolo.com/advanced/response-headers", "https://fastapi.tiangolo.com/tutorial/extra-data-types"]:
+        await _print_records(qdb, "DocsChunk", filter={("link", "value"): link, ("active", "value"): True},
+)
+
+# asyncio.run(_test_print_records())

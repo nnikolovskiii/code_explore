@@ -146,7 +146,10 @@ class QdrantDatabase:
                 with_vectors=with_vectors,
             )
             records = response[0]
-            await function(records)
+            if len(records) != 0:
+                await function(records)
+            else:
+                print("MUSTAAAAAAAAAAAAAARD")
             offset = response[-1]
             if offset is None:
                 break

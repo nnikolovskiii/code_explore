@@ -1,10 +1,13 @@
 import aiohttp
-import asyncio
+import logging
 import os
 from typing import List, Dict
-from huggingface_hub import InferenceClient
 from dotenv import load_dotenv
 from app.llms.utils import _get_messages_template
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 async def chat_with_hf_inference(
     message: str,
@@ -33,9 +36,10 @@ async def chat_with_hf_inference(
 
     async with aiohttp.ClientSession(headers=headers) as session:
         async with session.post(url, json=payload) as response:
+            logger.info(f"Received chat model response with status: {response.status}")
+
             if response.status == 200:
                 data = await response.json()
-                print(data['choices'][0]['message']['content'])
                 return data['choices'][0]['message']['content']
             else:
                 raise Exception(f"Error {response.status}: {response.reason}")

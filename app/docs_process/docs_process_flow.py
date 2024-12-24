@@ -10,7 +10,7 @@ from app.databases.qdrant_db import QdrantDatabase
 from app.docs_process.post_process.add_context import add_context_links
 from app.docs_process.post_process.embedd_chunks import embedd_chunks
 from app.docs_process.pre_process.chunking import chunk_links
-from app.models.docs import Link
+from app.models.docs import Link, DocsChunk
 
 
 class DocsActiveListDto(BaseModel):
@@ -46,18 +46,27 @@ async def change_active_files(
     )
 
     for link, active_status in zip(docs_dto.links, docs_dto.active):
-        docs_active_flag = await mdb.get_entry_from_col_value(
+        link_obj = await mdb.get_entry_from_col_value(
             column_name="link",
             column_value=link,
-            class_type=Link,
+            class_type=Link
         )
 
-        docs_active_flag.active = active_status
-        await mdb.update_entry(docs_active_flag)
+        if link_obj.processed:
+            await update_records(
+                qdb=qdb,
+                collection_name="DocsChunk",
+                filter={("link", "value"): link},
+                update={"active": active_status},
+            )
 
-        await update_records(
-            qdb=qdb,
-            collection_name="DocsChunk",
-            filter={("link", "value"): link},
-            update={"active": active_status},
-        )
+            link_obj.active = active_status
+            await mdb.update_entry(link_obj)
+
+            chunks = await mdb.get_entries(
+                DocsChunk,
+                doc_filter={"link": link}
+            )
+            for chunk in chunks:
+                chunk.active = active_status
+                await mdb.update_entry(chunk)

@@ -1,12 +1,8 @@
-import asyncio
 from typing import List, Dict
 
-from torch.utils.hipify.hipify_python import value
-
 from app.databases.singletons import get_qdrant_db, get_mongo_db
-from app.llms.generic_chat import generic_chat
 from app.models.code import CodeChunk, GitUrl
-from app.models.docs import FinalDocumentChunk
+from app.models.docs import DocsChunk, DocsUrl
 from app.stream_llms.hf_inference_stream import chat_with_hf_inference_stream
 
 
@@ -33,25 +29,26 @@ Here is the question from the user:
 {question}
 </question>
 
-Your job is to provide a correct and detailed answer to the question. Break your answer into multiple step in order for the user to easily understand it.
+Your job is to provide a correct and detailed answer to the question.
+Important: Use your own knowledge to determine which information from the chunks is relevant when answering the question.
 """
 
 
 async def retrieve_relevant_chunks(
         question: str
-) -> List[CodeChunk]:
+) -> List[DocsChunk]:
     qdb = await get_qdrant_db()
     mdb = await get_mongo_db()
 
-    git_objs = await mdb.get_entries(GitUrl, doc_filter={"active": True})
+    git_objs = await mdb.get_entries(DocsUrl, doc_filter={"active": True})
     git_urls = [git_obj.url for git_obj in git_objs]
 
     return await qdb.retrieve_similar_entries(
         value=question,
-        class_type=CodeChunk,
+        class_type=DocsChunk,
         score_threshold=0.0,
-        top_k=5,
-        filter={("active", "value"): True, ("url", "any"): git_urls}
+        top_k=10,
+        filter={("active", "value"): True}
     )
 
 
@@ -62,8 +59,10 @@ async def chat(
         stream: bool = False,
 ):
     relevant_chunks = await retrieve_relevant_chunks(message)
+    print("MUSTAAAAAAAAAAAAARD")
     print(relevant_chunks)
     print(len(relevant_chunks))
+    print("MUSTAAAAAAAAAAAAARD")
     chunk_contents = [chunk.content for chunk in relevant_chunks]
     template = chat_template(chunk_contents, message)
     async for data in chat_with_hf_inference_stream(
