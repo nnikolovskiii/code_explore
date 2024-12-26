@@ -1,8 +1,6 @@
-import asyncio
 from typing import List, Dict
 
 from app.databases.singletons import get_qdrant_db, get_mongo_db
-from app.models.code import CodeChunk, GitUrl
 from app.models.docs import DocsChunk, DocsUrl
 from app.stream_llms.hf_inference_stream import chat_with_hf_inference_stream
 
@@ -60,6 +58,7 @@ async def chat(
         stream: bool = False,
 ):
     relevant_chunks = await retrieve_relevant_chunks(message)
+    print(len(relevant_chunks))
     chunk_contents = [chunk.content for chunk in relevant_chunks]
     template = chat_template(chunk_contents, message)
     async for data in chat_with_hf_inference_stream(
