@@ -52,25 +52,25 @@ async def extract_library(
         urls = await mdb.get_entries(DocsUrl, doc_filter={"url": docs_url})
         if len(urls) == 0:
             await mdb.add_entry(DocsUrl(url=docs_url, active=True))
-            main_process = await create_simple_process(url=docs_url, mdb=mdb, process_type="main", type="docs")
+            main_process = await create_simple_process(url=docs_url, mdb=mdb, process_type="main", type="docs", order=0)
 
             logging.info("traverse")
-            process = await create_simple_process(url=docs_url, mdb=mdb, process_type="traverse", type="docs")
+            process = await create_simple_process(url=docs_url, mdb=mdb, process_type="traverse", type="docs", order=1)
             await traverse_links(docs_url,pattern, mdb)
             await finish_simple_process(process,mdb)
 
             logging.info("extract")
-            process = await create_simple_process(url=docs_url, mdb=mdb, process_type="extract", type="docs")
+            process = await create_simple_process(url=docs_url, mdb=mdb, process_type="extract", type="docs", order=2)
             await extract_contents(docs_url,selector, selector_attrs, mdb)
             await finish_simple_process(process,mdb)
 
             logging.info("check")
-            process = await create_simple_process(url=docs_url, mdb=mdb, process_type="check", type="docs")
+            process = await create_simple_process(url=docs_url, mdb=mdb, process_type="check", type="docs", order=3)
             await check_prev_links(docs_url, mdb)
             await finish_simple_process(process,mdb)
 
             logging.info("parents")
-            process = await create_simple_process(url=docs_url, mdb=mdb, process_type="parents", type="docs")
+            process = await create_simple_process(url=docs_url, mdb=mdb, process_type="parents", type="docs", order=4)
             await set_parent_flags(docs_url, mdb)
             await finish_simple_process(process,mdb)
 

@@ -7,17 +7,20 @@ class SimpleProcess(MongoEntry):
     process_type: str
     url: str
     type: str
+    order: int
 
 async def create_simple_process(
         url: str,
         process_type: str,
         type: str,
+        order: int,
         mdb:MongoDBDatabase
 )->SimpleProcess:
     process_id = await mdb.add_entry(SimpleProcess(
         process_type=process_type,
         url=url,
-        type=type
+        type=type,
+        order=order
     ))
     return await mdb.get_entry(ObjectId(process_id), SimpleProcess)
 
