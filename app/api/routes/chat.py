@@ -11,6 +11,7 @@ import logging
 
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
+from app.models.chat import ChatApi, get_fernet
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -104,3 +105,35 @@ async def update_chat(chat_id: str ,messages_dto: MessagesDto, mdb: db_dep):
         logging.error(f"Failed to add entry: {e}")
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to add entry")
     return True
+
+
+@router.post("/add_chat_api/", status_code=HTTPStatus.CREATED)
+async def add_chat_api(chat_api: ChatApi, mdb: db_dep):
+    try:
+        chat_api.api_key = get_fernet().encrypt(chat_api.api_key.encode())
+
+        chat_api_obj = await mdb.get_entry_from_col_value(
+            column_name="type",
+            column_value=chat_api.type,
+            class_type=ChatApi
+        )
+
+        if chat_api_obj is None:
+            await mdb.add_entry(chat_api)
+        else:
+            chat_api_obj.api_key = chat_api.api_key
+            await mdb.update_entry(chat_api_obj)
+    except Exception as e:
+        logging.error(f"Failed to add entry: {e}")
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to add entry")
+    return True
+
+@router.get("/get_chat_api/", status_code=HTTPStatus.CREATED)
+async def get_chat_api(type: str, mdb: db_dep):
+    chat_api_obj = await mdb.get_entry_from_col_value(
+        column_name="type",
+        column_value=type,
+        class_type=ChatApi
+    )
+
+    return ChatApi(type=type, api_key=get_fernet().decrypt(chat_api_obj.api_key).decode())
