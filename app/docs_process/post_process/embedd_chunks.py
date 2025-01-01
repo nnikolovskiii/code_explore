@@ -6,7 +6,7 @@ from bson import ObjectId
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.qdrant_db import QdrantDatabase
 
-from app.models.docs import DocsChunk, DocsContext, DocsEmbeddingFlag, Link
+from app.models.docs import DocsChunk, DocsContext, Link
 from app.models.process import create_process, increment_process, finish_process
 
 logger = logging.getLogger(__name__)
