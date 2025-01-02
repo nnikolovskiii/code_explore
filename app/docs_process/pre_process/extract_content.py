@@ -10,6 +10,7 @@ from markdownify import markdownify as md
 import requests
 
 from app.models.docs import DocsContent, Link
+from app.models.simple_process import SimpleProcess, update_status_process
 
 
 async def _get_beautiful_soup(
@@ -49,10 +50,13 @@ async def _html_to_markdown(url, selector: str, selector_attrs: str):
     return markdown_output
 
 
-async def extract_contents(docs_url:str,selector: str, selector_attrs: str, mdb: MongoDBDatabase):
+async def extract_contents(docs_url:str,selector: str, selector_attrs: str,process: SimpleProcess, mdb: MongoDBDatabase):
     link_objs = await mdb.get_entries(Link, {"base_url": docs_url})
 
-    for link_obj in tqdm(link_objs):
+    for i, link_obj in enumerate(link_objs):
+        if i % 5 == 0:
+            await update_status_process(f"Progress bar: {i}/{len(link_objs)}", process, mdb)
+
         link = link_obj.link
         try:
             content = await _html_to_markdown(link, selector, selector_attrs)

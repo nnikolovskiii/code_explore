@@ -9,6 +9,7 @@ from tqdm import tqdm
 import re
 
 from app.models.docs import Link
+from app.models.simple_process import SimpleProcess, update_status_process
 
 
 def _get_neighbouring_links(url: str) -> set:
@@ -32,7 +33,7 @@ def _get_neighbouring_links(url: str) -> set:
         return set()
 
 
-async def traverse_links(docs_url: str, patterns:List[str], mdb: MongoDBDatabase):
+async def traverse_links(docs_url: str, patterns:List[str],process: SimpleProcess, mdb: MongoDBDatabase):
     checked = set()
     links = deque([docs_url])
 
@@ -42,6 +43,7 @@ async def traverse_links(docs_url: str, patterns:List[str], mdb: MongoDBDatabase
             regex_li.append(re.compile(pattern))
 
     while len(links) > 0:
+        await update_status_process(f"Number of current links in the queue: {len(links)}", process, mdb)
         url = links.popleft()
         checked.add(url)
 
@@ -82,10 +84,13 @@ async def traverse_links(docs_url: str, patterns:List[str], mdb: MongoDBDatabase
     )
     await mdb.add_entry(link_obj)
 
-async def check_prev_links(docs_url: str, mdb: MongoDBDatabase):
+async def check_prev_links(docs_url: str,process: SimpleProcess, mdb: MongoDBDatabase):
     links = await mdb.get_entries(Link, {"base_url": docs_url})
 
-    for link in tqdm(links):
+    for i,link in enumerate(links):
+        if i % 5 == 0:
+            await update_status_process(f"Progress bar: {i}/{len(links)}", process, mdb)
+
         new_prev_link = link.prev_link
         curr_link = link.prev_link
         while True:
@@ -112,10 +117,13 @@ async def check_prev_links(docs_url: str, mdb: MongoDBDatabase):
     )
     await mdb.delete_entity(base_link)
 
-async def set_parent_flags(docs_url: str, mdb: MongoDBDatabase):
+async def set_parent_flags(docs_url: str,process: SimpleProcess, mdb: MongoDBDatabase):
     links = await mdb.get_entries(Link, {"base_url": docs_url})
 
-    for link in tqdm(links):
+    for i,link in enumerate(links):
+        if i % 5 == 0:
+            await update_status_process(f"Progress bar: {i}/{len(links)}", process, mdb)
+
         first_link_obj = await mdb.get_entry_from_col_value(
             column_name="prev_link",
             column_value=link.link,

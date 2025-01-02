@@ -55,3 +55,11 @@ async def get_pre_processes(url:str, mdb: mdb_dep):
         return process_dict
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/get_pre_process/")
+async def get_pre_processes(url:str, process_type:str, mdb: mdb_dep):
+    try:
+        process_objs = await mdb.get_entries(SimpleProcess, doc_filter={"url": url, "process_type": process_type})
+        return process_objs[0]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

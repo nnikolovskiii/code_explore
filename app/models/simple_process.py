@@ -1,3 +1,5 @@
+from typing import Optional
+
 from bson import ObjectId
 from app.databases.mongo_db import MongoEntry, MongoDBDatabase
 
@@ -8,6 +10,7 @@ class SimpleProcess(MongoEntry):
     url: str
     type: str
     order: int
+    status: Optional[str] = None
 
 async def create_simple_process(
         url: str,
@@ -30,4 +33,12 @@ async def finish_simple_process(
         mdb:MongoDBDatabase
 ):
     process.finished = True
+    await mdb.update_entry(process)
+
+async def update_status_process(
+        new_status: str,
+        process:SimpleProcess,
+        mdb:MongoDBDatabase
+):
+    process.status = new_status
     await mdb.update_entry(process)
