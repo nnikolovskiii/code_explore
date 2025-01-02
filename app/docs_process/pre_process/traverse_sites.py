@@ -19,7 +19,7 @@ def _get_neighbouring_links(url: str) -> set:
         soup = BeautifulSoup(response.content, 'html.parser')
         links = soup.find_all("a", href=True)
 
-        b_url = urljoin(url, '/')
+        b_url = url + "/" if not url.endswith("/") else url
 
         full_links = set()
         for link in links:
@@ -125,6 +125,4 @@ async def set_parent_flags(docs_url: str, mdb: MongoDBDatabase):
             link.is_parent = True
             await mdb.update_entry(link)
 # asyncio.run(check_prev_links(docs_url="https://fastapi.tiangolo.com/", mdb=MongoDBDatabase()))
-
-
 
