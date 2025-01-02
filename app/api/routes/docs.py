@@ -23,15 +23,17 @@ router = APIRouter()
 mdb_dep = Annotated[MongoDBDatabase, Depends(get_mongo_db)]
 qdb_dep = Annotated[QdrantDatabase, Depends(get_qdrant_db)]
 
+class PatternDto(BaseModel):
+    patterns: List[str]
 
-@router.get("/extract_docs/")
+@router.post("/extract_docs/")
 async def extract_library(
         docs_url: str,
         override: bool,
         selector: str,
         mdb: mdb_dep,
         qdb: qdb_dep,
-        pattern: str = None,
+        pattern_dto: PatternDto = None,
         selector_attrs: str = None
 ):
     try:
@@ -56,7 +58,7 @@ async def extract_library(
 
             logging.info("traverse")
             process = await create_simple_process(url=docs_url, mdb=mdb, process_type="traverse", type="docs", order=1)
-            await traverse_links(docs_url,pattern, mdb)
+            await traverse_links(docs_url,pattern_dto.patterns, mdb)
             await finish_simple_process(process,mdb)
 
             logging.info("extract")

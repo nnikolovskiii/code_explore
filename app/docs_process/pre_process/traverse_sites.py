@@ -1,5 +1,6 @@
 import logging
 from collections import deque
+from typing import List
 from urllib.parse import urljoin
 from app.databases.mongo_db import MongoDBDatabase
 from bs4 import BeautifulSoup
@@ -31,13 +32,14 @@ def _get_neighbouring_links(url: str) -> set:
         return set()
 
 
-async def traverse_links(docs_url: str, pattern:str, mdb: MongoDBDatabase):
+async def traverse_links(docs_url: str, patterns:List[str], mdb: MongoDBDatabase):
     checked = set()
     links = deque([docs_url])
 
-    regex = None
-    if pattern is not None:
-        regex = re.compile(pattern)
+    regex_li = []
+    if patterns is not None:
+        for pattern in patterns:
+            regex_li.append(re.compile(pattern))
 
     while len(links) > 0:
         url = links.popleft()
@@ -46,8 +48,12 @@ async def traverse_links(docs_url: str, pattern:str, mdb: MongoDBDatabase):
         neighbours = _get_neighbouring_links(url)
         for link in neighbours:
             not_in_regex = True
-            if pattern is not None:
-                not_in_regex = not regex.search(link)
+            if patterns is not None:
+                for regex in regex_li:
+                    if regex.search(link):
+                        not_in_regex = False
+                        break
+
             if docs_url in link and link not in checked and not_in_regex:
                 checked.add(link)
                 links.append(link)
