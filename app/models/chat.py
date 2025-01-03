@@ -28,4 +28,4 @@ class ChatApi(MongoEntry):
 
 class ChatModel(MongoEntry):
     name: str
-    chat_api_id: str
+    chat_api_type: str

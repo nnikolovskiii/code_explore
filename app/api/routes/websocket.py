@@ -61,7 +61,6 @@ async def websocket_endpoint(websocket: WebSocket, mdb: mdb_dep):
                         message=message,
                         system_message="You are an expert coding assistant.",
                         history=history,
-                        stream=True,
                 ):
                     await websocket.send_text(response_chunk)
                     await asyncio.sleep(0.0001)

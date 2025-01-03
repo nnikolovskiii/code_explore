@@ -65,6 +65,5 @@ async def chat(
         message=template,
         system_message=system_message,
         history=history,
-        stream=stream,
     ):
         yield data

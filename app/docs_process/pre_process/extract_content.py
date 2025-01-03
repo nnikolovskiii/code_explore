@@ -1,13 +1,9 @@
 from typing import Optional
-from urllib.parse import urljoin
 
 import aiohttp
 import html2text
 from app.databases.mongo_db import MongoDBDatabase
-from tqdm import tqdm
 from bs4 import BeautifulSoup, Tag
-from markdownify import markdownify as md
-import requests
 
 from app.models.docs import DocsContent, Link
 from app.models.simple_process import SimpleProcess, update_status_process
