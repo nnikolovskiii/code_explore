@@ -1,22 +1,19 @@
-import os
 from typing import List, Dict
 
 from huggingface_hub import InferenceClient
-from dotenv import load_dotenv
 
 from app.llms.utils import _get_messages_template
+from app.models.chat import ChatModel, ChatApi
 
 
 async def chat_with_hf_inference_stream(
         message: str,
         system_message: str,
+        chat_model: ChatModel,
+        chat_api: ChatApi,
         history: List[Dict[str, str]] = None,
 ):
-    load_dotenv()
-    hf_api_key = os.getenv("HF_API_KEY")
-    hf_model = os.getenv("HF_MODEL")
-
-    client = InferenceClient(model=hf_model, api_key=hf_api_key, headers={"x-use-cache": "false"})
+    client = InferenceClient(model=chat_model.name, api_key=chat_api.api_key, headers={"x-use-cache": "false"})
 
     messages = _get_messages_template(message, system_message, history)
 

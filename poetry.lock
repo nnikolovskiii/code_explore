@@ -1566,13 +1566,13 @@ langchain-core = ">=0.3.26,<0.4.0"
 
 [[package]]
 name = "langsmith"
-version = "0.2.9"
+version = "0.2.10"
 description = "Client library to connect to the LangSmith LLM Tracing and Evaluation Platform."
 optional = false
 python-versions = "<4.0,>=3.9"
 files = [
-    {file = "langsmith-0.2.9-py3-none-any.whl", hash = "sha256:000fb8dcd137c45866f0d4f7bc9c16380d5c6d676f55542c567dac08cbdb0139"},
-    {file = "langsmith-0.2.9.tar.gz", hash = "sha256:5da3021864523097b2880ce97b070013db65b383f4d31e59ffea54322c9a45b3"},
+    {file = "langsmith-0.2.10-py3-none-any.whl", hash = "sha256:b02f2f174189ff72e54c88b1aa63343defd6f0f676c396a690c63a4b6495dcc2"},
+    {file = "langsmith-0.2.10.tar.gz", hash = "sha256:153c7b3ccbd823528ff5bec84801e7e50a164e388919fc583252df5b27dd7830"},
 ]
 
 [package.dependencies]
@@ -2360,13 +2360,13 @@ pydantic = ">=2.9.0,<3.0.0"
 
 [[package]]
 name = "openai"
-version = "1.59.2"
+version = "1.59.3"
 description = "The official Python library for the openai API"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "openai-1.59.2-py3-none-any.whl", hash = "sha256:3de721df4d2ccc5e845afa7235dce496bfbdd572692a876d2ae6211e0290ff22"},
-    {file = "openai-1.59.2.tar.gz", hash = "sha256:1bf2d5e8a93533f6dd3fb7b1bcf082ddd4ae61cc6d89ca1343e5957e4720651c"},
+    {file = "openai-1.59.3-py3-none-any.whl", hash = "sha256:b041887a0d8f3e70d1fc6ffbb2bf7661c3b9a2f3e806c04bf42f572b9ac7bc37"},
+    {file = "openai-1.59.3.tar.gz", hash = "sha256:7f7fff9d8729968588edf1524e73266e8593bb6cab09298340efb755755bb66f"},
 ]
 
 [package.dependencies]

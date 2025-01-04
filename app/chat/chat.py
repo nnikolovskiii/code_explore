@@ -1,8 +1,9 @@
 from typing import List, Dict
 
+from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_qdrant_db, get_mongo_db
+from app.llms.generic_stream_chat import generic_stram_chat
 from app.models.docs import DocsChunk, DocsUrl
-from app.stream_llms.hf_inference_stream import chat_with_hf_inference_stream
 
 
 def _get_chunk_tags(
@@ -54,16 +55,16 @@ async def retrieve_relevant_chunks(
 async def chat(
         message: str,
         system_message: str,
+        mdb: MongoDBDatabase,
         history: List[Dict[str, str]] = None,
-        stream: bool = False,
 ):
     relevant_chunks = await retrieve_relevant_chunks(message)
-    print(len(relevant_chunks))
     chunk_contents = [chunk.content for chunk in relevant_chunks]
     template = chat_template(chunk_contents, message)
-    async for data in chat_with_hf_inference_stream(
-        message=template,
-        system_message=system_message,
-        history=history,
+    async for data in generic_stram_chat(
+            message=template,
+            system_message=system_message,
+            history=history,
+            mdb=mdb
     ):
         yield data

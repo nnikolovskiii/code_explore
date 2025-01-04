@@ -173,7 +173,7 @@ class MongoDBDatabase:
     async def get_entry_from_col_value(
             self,
             column_name: str,
-            column_value: str,
+            column_value: Any,
             class_type: TypingType[T],
             collection_name: Optional[str] = None,
     ) -> Optional[T]:

@@ -7,11 +7,9 @@ import logging
 
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
-from app.llms.hf_inference_chat import chat_with_hf_inference
+from app.llms.generic_stream_chat import generic_stram_chat
 from app.models.Flag import Flag
 import json
-
-from app.stream_llms.hf_inference_stream import chat_with_hf_inference_stream
 
 logging.basicConfig(level=logging.DEBUG)
 from fastapi import APIRouter, Depends
@@ -52,15 +50,15 @@ async def websocket_endpoint(websocket: WebSocket, mdb: mdb_dep):
                     message=message,
                     system_message="You are an expert coding assistant.",
                     history=history,
-                    stream=True,
                 ):
                     await websocket.send_text(response_chunk)
                     await asyncio.sleep(0.0001)
             else:
-                async for response_chunk in chat_with_hf_inference_stream(
+                async for response_chunk in generic_stram_chat(
                         message=message,
                         system_message="You are an expert coding assistant.",
                         history=history,
+                        mdb=mdb
                 ):
                     await websocket.send_text(response_chunk)
                     await asyncio.sleep(0.0001)

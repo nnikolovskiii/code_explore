@@ -175,8 +175,36 @@ async def get_chat_api_and_models(type: str, mdb: db_dep):
 
         return {
             "models": await mdb.get_entries(ChatModel, doc_filter={"chat_api_type": type}),
-            "api": ChatApi(type=type, api_key=get_fernet().decrypt(chat_api.api_key).decode())
+            "api": ChatApi(id=chat_api.id,type=type, api_key=get_fernet().decrypt(chat_api.api_key).decode())
         }
+    except Exception as e:
+        logging.error(f"Failed to add entry: {e}")
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to add entry")
+
+@router.post("/set_active_model/", status_code=HTTPStatus.CREATED)
+async def set_active_model(model:str, type: str, mdb: db_dep):
+    try:
+        current_active = await mdb.get_entry_from_col_value(
+            column_name="active",
+            column_value=True,
+            class_type=ChatModel
+        )
+
+        if current_active is not None:
+            current_active.active = False
+            await mdb.update_entry(current_active)
+
+        new_active = await mdb.get_entry_from_col_value(
+            column_name="name",
+            column_value=model,
+            class_type=ChatModel
+        )
+
+        if new_active is None:
+            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Chat Model does not exist")
+        else:
+            new_active.active = True
+            await mdb.update_entry(new_active)
     except Exception as e:
         logging.error(f"Failed to add entry: {e}")
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to add entry")
