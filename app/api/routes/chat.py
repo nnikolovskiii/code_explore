@@ -9,9 +9,9 @@ from app.chat.create_chat_name import create_chat_name
 from app.chat.models import Message, Chat
 import logging
 
-from app.databases.mongo_db import MongoDBDatabase
+from app.databases.mongo_db import MongoDBDatabase, MongoEntry
 from app.databases.singletons import get_mongo_db
-from app.models.chat import ChatApi, get_fernet, ChatModel
+from app.models.chat import ChatApi, get_fernet, ChatModel, get_active_chat_model
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -181,8 +181,12 @@ async def get_chat_api_and_models(type: str, mdb: db_dep):
         logging.error(f"Failed to add entry: {e}")
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to add entry")
 
+
+class ActiveModelDto(MongoEntry):
+    model: str
+    type: str
 @router.post("/set_active_model/", status_code=HTTPStatus.CREATED)
-async def set_active_model(model:str, type: str, mdb: db_dep):
+async def set_active_model(active_model_dto:ActiveModelDto, mdb: db_dep):
     try:
         current_active = await mdb.get_entry_from_col_value(
             column_name="active",
@@ -196,7 +200,7 @@ async def set_active_model(model:str, type: str, mdb: db_dep):
 
         new_active = await mdb.get_entry_from_col_value(
             column_name="name",
-            column_value=model,
+            column_value=active_model_dto.model,
             class_type=ChatModel
         )
 
@@ -205,6 +209,15 @@ async def set_active_model(model:str, type: str, mdb: db_dep):
         else:
             new_active.active = True
             await mdb.update_entry(new_active)
+    except Exception as e:
+        logging.error(f"Failed to add entry: {e}")
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to add entry")
+
+@router.get("/get_active_model/", status_code=HTTPStatus.CREATED)
+async def get_active_model(mdb: db_dep):
+    try:
+        chat_model = await get_active_chat_model(mdb)
+        return chat_model
     except Exception as e:
         logging.error(f"Failed to add entry: {e}")
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to add entry")
