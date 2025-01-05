@@ -12,6 +12,7 @@ import logging
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
 from app.databases.singletons import get_mongo_db
 from app.models.chat import ChatApi, get_fernet, ChatModel, get_active_chat_model
+from datetime import datetime, timedelta
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -32,12 +33,40 @@ class MessagesDto(BaseModel):
 
 @router.get("/get_chats/", status_code=HTTPStatus.CREATED)
 async def get_chats(mdb: db_dep):
+    def categorize_chat(chat, now):
+        chat_datetime = chat.timestamp
+
+        if chat_datetime.date() == now.date():
+            return "today"
+        elif chat_datetime.date() == (now - timedelta(days=1)).date():
+            return "yesterday"
+        elif now - timedelta(days=7) <= chat_datetime <= now:
+            return "previous_7_days"
+        elif now - timedelta(days=30) <= chat_datetime <= now:
+            return "previous_30_days"
+        return None
+
     try:
         chats = await mdb.get_entries(Chat)
+        chats = sorted(chats, key=lambda x: x.timestamp, reverse=True)
+
+        categorized_chats = {
+            "today": [],
+            "yesterday": [],
+            "previous_7_days": [],
+            "previous_30_days": []
+        }
+        now = datetime.now()
+
+        for chat in chats:
+            category = categorize_chat(chat, now)
+            if category:
+                categorized_chats[category].append(chat)
+
     except Exception as e:
         logging.error(f"Failed to add entry: {e}")
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to add entry")
-    return chats
+    return categorized_chats
 
 
 @router.get("/get_chat_messages/{chat_id}", status_code=HTTPStatus.CREATED)
