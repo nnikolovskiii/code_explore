@@ -1,5 +1,7 @@
 import asyncio
 from datetime import datetime
+from typing import List, Optional
+
 from app.databases.mongo_db import MongoEntry, MongoDBDatabase
 
 

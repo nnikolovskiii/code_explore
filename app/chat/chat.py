@@ -59,6 +59,7 @@ async def chat(
         history: List[Dict[str, str]] = None,
 ):
     relevant_chunks = await retrieve_relevant_chunks(message)
+    references = {(relevant_chunk.link, relevant_chunk.link.split(relevant_chunk.base_url)[1]) for relevant_chunk in relevant_chunks}
     chunk_contents = [chunk.content for chunk in relevant_chunks]
     template = chat_template(chunk_contents, message)
     async for data in generic_stram_chat(
@@ -68,3 +69,12 @@ async def chat(
             mdb=mdb
     ):
         yield data
+
+    yield "<div class='references'><p class='reference_header'>Sources:</p><div class='references_list'>"
+    for reference, reference_name in references:
+        yield f"""<div class="reference">
+                        <a href="{reference}" target="_blank">
+                            {reference_name}
+                        </a>
+                      </div>"""
+    yield "</div></div>"
