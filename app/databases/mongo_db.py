@@ -193,6 +193,28 @@ class MongoDBDatabase:
 
         return None
 
+    async def get_entry_from_col_values(
+            self,
+            columns: Dict[str, Any],
+            class_type: TypingType[T],
+            collection_name: Optional[str] = None,
+    ) -> Optional[T]:
+        collection_name = class_type.__name__ if collection_name is None else collection_name
+        collection = self.db[collection_name]
+
+        query = columns
+
+        document = await collection.find_one(query)
+
+        if document:
+            attr_dict = {key: value for key, value in document.items()}
+            attr_dict["id"] = str(document["_id"])
+
+            instance = class_type(**attr_dict)
+            return instance
+
+        return None
+
     async def get_entry_from_col_value_dict(
             self,
             column_name: str,
@@ -235,6 +257,30 @@ class MongoDBDatabase:
         )
 
         return result.modified_count > 0
+
+    async def update_entry(
+            self,
+            entity: MongoEntry,
+            collection_name: Optional[str] = None,
+            update: Optional[Dict[str, Any]] = None
+    ) -> bool:
+        collection_name = entity.__class__.__name__ if collection_name is None else collection_name
+        collection = self.db[collection_name]
+
+        entity_dict = entity.model_dump()
+        if "id" in entity_dict:
+            entity_dict.pop("id")
+
+        if update:
+            entity_dict.update(update)
+
+        result = await collection.update_one(
+            {"_id": ObjectId(entity.id)},
+            {"$set": entity_dict}
+        )
+
+        return result.modified_count > 0
+
 
     async def delete_collection(self, collection_name: str) -> bool:
         if collection_name not in await self.db.list_collection_names():
@@ -283,6 +329,14 @@ class MongoDBDatabase:
             collection_name: Optional[str] = None,
     ) -> int:
         collection_name = class_type.__name__ if collection_name is None else collection_name
+        collection = self.db[collection_name]
+        return await collection.count_documents(doc_filter or {})
+
+    async def count_entries_dict(
+            self,
+            collection_name: str,
+        doc_filter: Dict[str, Any] = None,
+    ) -> int:
         collection = self.db[collection_name]
         return await collection.count_documents(doc_filter or {})
 

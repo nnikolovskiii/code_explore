@@ -47,11 +47,12 @@ async def _html_to_markdown(url, selector: str, selector_attrs: str):
 
 
 async def extract_contents(docs_url:str,selector: str, selector_attrs: str,process: SimpleProcess, mdb: MongoDBDatabase):
-    link_objs = await mdb.get_entries(Link, {"base_url": docs_url})
-
-    for i, link_obj in enumerate(link_objs):
-        if i % 5 == 0:
-            await update_status_process(f"Progress bar: {i}/{len(link_objs)}", process, mdb)
+    counter = 0
+    num_links = await mdb.count_entries(Link, {"base_url": docs_url})
+    async for link_obj in mdb.stream_entries(Link, {"base_url": docs_url}):
+        if counter % 5 == 0:
+            await update_status_process(f"Progress bar: {counter}/{num_links}", process, mdb)
+        counter +=1
 
         link = link_obj.link
         try:

@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from typing import List
 
@@ -9,7 +8,7 @@ from app.databases.mongo_db import MongoDBDatabase
 from app.databases.qdrant_db import QdrantDatabase
 from app.docs_process.post_process.add_context import add_context_links
 from app.docs_process.post_process.embedd_chunks import embedd_chunks
-from app.docs_process.pre_process.chunking import chunk_links
+from app.docs_process.post_process.chunking import chunk_links
 from app.models.docs import Link, DocsChunk
 
 

@@ -16,7 +16,6 @@ async def chunk_content(
 ):
     texts = text_splitter.split_text(content.content)
 
-    # Important: change later
     if huge_content or (len(texts) < 50 and not huge_content):
         for i, text in enumerate(texts):
             doc_chunk = DocsChunk(
