@@ -17,15 +17,25 @@ async def create_simple_process(
         process_type: str,
         type: str,
         order: int,
-        mdb:MongoDBDatabase
+        mdb:MongoDBDatabase,
+        status: Optional[str] = None
 )->SimpleProcess:
-    process_id = await mdb.add_entry(SimpleProcess(
-        process_type=process_type,
-        url=url,
-        type=type,
-        order=order
-    ))
-    return await mdb.get_entry(ObjectId(process_id), SimpleProcess)
+    exist_process = await mdb.get_entry_from_col_values(
+        columns={"url":url, "type":type, "process_type":process_type},
+        class_type=SimpleProcess,
+    )
+
+    if exist_process is None:
+        process_id = await mdb.add_entry(SimpleProcess(
+            process_type=process_type,
+            url=url,
+            type=type,
+            order=order,
+            status = status
+        ))
+        return await mdb.get_entry(ObjectId(process_id), SimpleProcess)
+    else:
+        return exist_process
 
 
 async def finish_simple_process(

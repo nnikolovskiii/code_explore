@@ -9,8 +9,9 @@ import logging
 
 from app.databases.qdrant_db import QdrantDatabase
 from app.databases.singletons import get_mongo_db, get_qdrant_db
+from app.models.docs import DocsUrl
 from app.models.process import Process
-from app.models.simple_process import SimpleProcess
+from app.models.simple_process import SimpleProcess, create_simple_process
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -61,5 +62,21 @@ async def get_pre_processes(url:str, process_type:str, mdb: mdb_dep):
     try:
         process_objs = await mdb.get_entries(SimpleProcess, doc_filter={"url": url, "process_type": process_type})
         return process_objs[0]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/delete_pre_process/")
+async def delete_pre_process(url:str, mdb: mdb_dep):
+    try:
+        await mdb.delete_entries(SimpleProcess, doc_filter={"url": url})
+        await create_simple_process(
+            url=url,
+            mdb=mdb,
+            process_type="main",
+            type="docs",
+            order=0,
+            status="Started the process. Please refresh."
+        )
+        return True
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

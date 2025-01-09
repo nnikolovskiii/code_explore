@@ -1,7 +1,7 @@
+import asyncio
 import os
 from dotenv import load_dotenv
-import requests
-import json
+import httpx
 from typing import List
 
 
@@ -22,10 +22,13 @@ async def embedd_content_with_model(
         'model': 'text-embedding-3-large'
     }
 
-    response = requests.post(url, headers=headers, data=json.dumps(data))
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, headers=headers, json=data)
 
     if response.status_code == 200:
         response_data = response.json()
         return response_data['data'][0]['embedding']
     else:
         response.raise_for_status()
+
+# asyncio.run(embedd_content_with_model("Hello World"))
