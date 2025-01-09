@@ -36,4 +36,4 @@ COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 COPY ./app ./app
 
 # Entrypoint for FastAPI
-ENTRYPOINT ["fastapi", "dev", "app/api/main.py", "--port", "5001"]
+ENTRYPOINT ["uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "5000"]

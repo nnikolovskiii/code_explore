@@ -21,7 +21,7 @@ class MongoDBDatabase:
 
     def __init__(self, database_name: str = "library_explore"):
         load_dotenv()
-        url = os.getenv("URL")
+        url = os.getenv("MONGO_URL")
         self.client = AsyncIOMotorClient(f"mongodb://root:example@{url}:27017/")
         self.db = self.client[database_name]
 

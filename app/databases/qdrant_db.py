@@ -27,7 +27,7 @@ class QdrantDatabase:
 
     def __init__(self):
         load_dotenv()
-        url = os.getenv("URL")
+        url = os.getenv("QDRANT_URL")
         self.client = AsyncQdrantClient(url=f"http://{url}:6333")
 
     async def collection_exists(self, collection_name: str) -> bool:

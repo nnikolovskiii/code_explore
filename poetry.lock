@@ -1591,13 +1591,13 @@ langsmith-pyo3 = ["langsmith-pyo3 (>=0.1.0rc2,<0.2.0)"]
 
 [[package]]
 name = "logfire-api"
-version = "3.0.0"
+version = "3.1.0"
 description = "Shim for the Logfire SDK which does nothing unless Logfire is installed"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "logfire_api-3.0.0-py3-none-any.whl", hash = "sha256:0bff40717e369f43205bdd6aa23b6ef79e29b69f48e9be7c5c58d5272dc4052a"},
-    {file = "logfire_api-3.0.0.tar.gz", hash = "sha256:570eca9a35f53769ae385c292e5811511cf082a8ce421b67fe2679c77cd37ca4"},
+    {file = "logfire_api-3.1.0-py3-none-any.whl", hash = "sha256:da42efe3a88651097229b2939722df46c021bd74946d4cfe6772923b8df03442"},
+    {file = "logfire_api-3.1.0.tar.gz", hash = "sha256:48685aea9b66adcb79acb86d23613a0f6f3d3e307587cbfabdc1bd7de0f2b9c9"},
 ]
 
 [[package]]
@@ -2782,13 +2782,13 @@ files = [
 
 [[package]]
 name = "pydantic"
-version = "2.10.4"
+version = "2.10.5"
 description = "Data validation using Python type hints"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "pydantic-2.10.4-py3-none-any.whl", hash = "sha256:597e135ea68be3a37552fb524bc7d0d66dcf93d395acd93a00682f1efcb8ee3d"},
-    {file = "pydantic-2.10.4.tar.gz", hash = "sha256:82f12e9723da6de4fe2ba888b5971157b3be7ad914267dea8f05f82b28254f06"},
+    {file = "pydantic-2.10.5-py3-none-any.whl", hash = "sha256:4dd4e322dbe55472cb7ca7e73f4b63574eecccf2835ffa2af9021ce113c83c53"},
+    {file = "pydantic-2.10.5.tar.gz", hash = "sha256:278b38dbbaec562011d659ee05f63346951b3a248a6f3642e1bc68894ea2b4ff"},
 ]
 
 [package.dependencies]
