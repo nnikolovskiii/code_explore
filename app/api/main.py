@@ -25,6 +25,9 @@ origins = [
     "https://localhost.tiangolo.com",
     "http://localhost",
     "http://localhost:4200",
+    "http://mkpatka.duckdns.org:8080",
+    "http://mkpatka.duckdns.org:5000",
+
 ]
 
 app.add_middleware(

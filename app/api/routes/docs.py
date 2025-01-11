@@ -23,13 +23,16 @@ router = APIRouter()
 mdb_dep = Annotated[MongoDBDatabase, Depends(get_mongo_db)]
 qdb_dep = Annotated[QdrantDatabase, Depends(get_qdrant_db)]
 
+
 class PatternDto(BaseModel):
     patterns: List[str]
+
 
 @router.post("/extract_docs/")
 async def extract_library(
         docs_url: str,
         override: bool,
+        selector_type: str,
         selector: str,
         mdb: mdb_dep,
         qdb: qdb_dep,
@@ -58,25 +61,32 @@ async def extract_library(
 
             logging.info("traverse")
             process = await create_simple_process(url=docs_url, mdb=mdb, process_type="traverse", type="docs", order=1)
-            await traverse_links(docs_url,pattern_dto.patterns, process, mdb)
-            await finish_simple_process(process,mdb)
+            await traverse_links(docs_url, pattern_dto.patterns, process, mdb)
+            await finish_simple_process(process, mdb)
 
             logging.info("extract")
             process = await create_simple_process(url=docs_url, mdb=mdb, process_type="extract", type="docs", order=2)
-            await extract_contents(docs_url,selector, selector_attrs,process, mdb)
-            await finish_simple_process(process,mdb)
+            await extract_contents(
+                docs_url=docs_url,
+                selector=selector,
+                selector_type=selector_type,
+                selector_attrs=selector_attrs,
+                process=process,
+                mdb=mdb
+            )
+            await finish_simple_process(process, mdb)
 
             logging.info("check")
             process = await create_simple_process(url=docs_url, mdb=mdb, process_type="check", type="docs", order=3)
-            await check_prev_links(docs_url,process, mdb)
-            await finish_simple_process(process,mdb)
+            await check_prev_links(docs_url, process, mdb)
+            await finish_simple_process(process, mdb)
 
             logging.info("parents")
             process = await create_simple_process(url=docs_url, mdb=mdb, process_type="parents", type="docs", order=4)
-            await set_parent_flags(docs_url,process, mdb)
-            await finish_simple_process(process,mdb)
+            await set_parent_flags(docs_url, process, mdb)
+            await finish_simple_process(process, mdb)
 
-            await finish_simple_process(main_process,mdb)
+            await finish_simple_process(main_process, mdb)
 
             return {"status": "success", "message": "Fetched links and processed successfully."}
         else:
@@ -84,5 +94,3 @@ async def extract_library(
     except Exception as e:
         logging.exception("Error cloning library")
         raise HTTPException(status_code=500, detail=str(e))
-
-
