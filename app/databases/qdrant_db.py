@@ -155,6 +155,30 @@ class QdrantDatabase:
                 break
         return records
 
+    async def scroll(
+            self,
+            collection_name: str,
+            with_vectors: bool = True,
+            filter: Optional[Dict[Tuple[str, str], Any]] = None,
+    ):
+        field_condition = QdrantDatabase._generate_filter(filters=filter)
+        offset = None
+        while True:
+            response = await self.client.scroll(
+                collection_name=collection_name,
+                scroll_filter=field_condition,
+                limit=50,
+                offset=offset,
+                with_payload=True,
+                with_vectors=with_vectors,
+            )
+            records = response[0]
+            yield records
+
+            offset = response[-1]
+            if offset is None:
+                break
+
     async def get_first_record_by_filter(
             self,
             collection_name: str,

@@ -68,7 +68,7 @@ async def _set_embedding_flags(
 ):
     async for link_obj in mdb.stream_entries(
             class_type=Link,
-            doc_filter={"base_url": docs_url},
+            doc_filter={"base_url": docs_url, "processed": False},
             collection_name="TempLink"
     ):
         num_processed_chunks = await mdb.count_entries(DocsChunk, doc_filter={"link": link_obj.link, "base_url": docs_url,
@@ -95,7 +95,7 @@ async def _get_embedd_chunks_length(
     count = 0
     async for link_obj in mdb.stream_entries(
             class_type=Link,
-            doc_filter={"base_url": docs_url},
+            doc_filter={"base_url": docs_url, "processed": False},
             collection_name="TempLink"
     ):
         chunks = await mdb.get_entries(DocsChunk, doc_filter={"link": link_obj.link})

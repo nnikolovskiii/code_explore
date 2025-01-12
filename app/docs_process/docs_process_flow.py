@@ -25,7 +25,7 @@ async def process_code_files(
     logging.info("chunk_links")
     await chunk_links(docs_url=docs_url, mdb=mdb)
     logging.info("add_context_links")
-    await add_context_links(mdb=mdb, docs_url=docs_url)
+    # await add_context_links(mdb=mdb, docs_url=docs_url)
     logging.info("embedd_chunks")
     await embedd_chunks(mdb=mdb, qdb=qdb, docs_url=docs_url)
 
