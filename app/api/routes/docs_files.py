@@ -53,14 +53,7 @@ async def get_links(prev_link: str, mdb: mdb_dep):
 
 @router.get("/activate_tmp_files/")
 async def activate_tmp_files(docs_url: str, mdb: mdb_dep, qdb: qdb_dep):
-    links = await mdb.get_entries(Link, doc_filter={"base_url": docs_url}, collection_name="TempLink")
-    link_strs = [link.link for link in links]
-    active_status = [link.active for link in links]
-
     await change_active_files(
-        docs_dto=DocsActiveListDto(
-            links=link_strs,
-            active=active_status, ),
         docs_url=docs_url,
         mdb=mdb,
         qdb=qdb,
@@ -92,7 +85,7 @@ async def select_all_links(prev_link: str, select:bool, mdb: mdb_dep):
     return {"links": links, }
 
 @router.get("/select_docs/")
-async def select_all_links(docs_url:str, select:bool, mdb: mdb_dep):
+async def select_docs(docs_url:str, select:bool, mdb: mdb_dep):
     links = await mdb.get_entries(Link, doc_filter={"base_url": docs_url})
     for link in links:
         await add_update_tmp_link(link.link, select, mdb)

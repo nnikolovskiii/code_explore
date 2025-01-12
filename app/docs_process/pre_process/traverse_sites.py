@@ -74,8 +74,6 @@ async def traverse_links(docs_url: str, patterns:List[str],process: SimpleProces
                     class_type=ProcessLink,
                 )
                 if docs_url in link and check_link is None and not_in_regex:
-                    # checked.add(link)
-                    # links.append(link)
                     await mdb.add_entry(ProcessLink(process="traverse", link=link, url=docs_url))
 
                     if link != docs_url and link != docs_url + "/":

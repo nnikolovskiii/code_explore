@@ -18,54 +18,49 @@ class DocsActiveListDto(BaseModel):
 
 
 async def process_code_files(
-        links: List[str],
         docs_url: str,
         mdb: MongoDBDatabase,
         qdb: QdrantDatabase,
 ):
     logging.info("chunk_links")
-    await chunk_links(links=links, docs_url=docs_url, mdb=mdb)
+    await chunk_links(docs_url=docs_url, mdb=mdb)
     logging.info("add_context_links")
-    await add_context_links(mdb=mdb, links=links, docs_url=docs_url)
+    await add_context_links(mdb=mdb, docs_url=docs_url)
     logging.info("embedd_chunks")
-    await embedd_chunks(mdb=mdb, qdb=qdb, links=links, docs_url=docs_url)
+    await embedd_chunks(mdb=mdb, qdb=qdb, docs_url=docs_url)
 
 
 async def change_active_files(
-        docs_dto: DocsActiveListDto,
         docs_url: str,
         mdb: MongoDBDatabase,
         qdb: QdrantDatabase
 ):
+    await mdb.delete_entries(
+        class_type=Link,
+        doc_filter={"base_url": docs_url, "processed": False, "active": False},
+        collection_name="TempLink"
+    )
+
     await process_code_files(
-        links=docs_dto.links,
         docs_url=docs_url,
         mdb=mdb,
         qdb=qdb,
     )
 
-    for link, active_status in zip(docs_dto.links, docs_dto.active):
-        link_obj = await mdb.get_entry_from_col_value(
-            column_name="link",
-            column_value=link,
-            class_type=Link
+    async for link_obj in mdb.stream_entries(Link, doc_filter={"base_url": docs_url}, collection_name="TempLink"):
+        await mdb.update_entry(link_obj, collection_name="Link")
+
+        await update_records(
+            qdb=qdb,
+            collection_name="DocsChunk",
+            filter={("link", "value"): link_obj.link},
+            update={"active": link_obj.active},
         )
 
-        if link_obj.processed:
-            await update_records(
-                qdb=qdb,
-                collection_name="DocsChunk",
-                filter={("link", "value"): link},
-                update={"active": active_status},
-            )
-
-            link_obj.active = active_status
-            await mdb.update_entry(link_obj)
-
-            chunks = await mdb.get_entries(
-                DocsChunk,
-                doc_filter={"link": link}
-            )
-            for chunk in chunks:
-                chunk.active = active_status
-                await mdb.update_entry(chunk)
+        chunks = await mdb.get_entries(
+            DocsChunk,
+            doc_filter={"link": link_obj.link}
+        )
+        for chunk in chunks:
+            chunk.active = link_obj.active
+            await mdb.update_entry(chunk)

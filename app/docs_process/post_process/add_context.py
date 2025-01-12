@@ -3,11 +3,16 @@ from typing import List
 
 from bson import ObjectId
 
-from app.databases.mongo_db import MongoDBDatabase
+from app.databases.mongo_db import MongoDBDatabase, MongoEntry
 from app.llms.generic_chat import generic_chat
-from app.llms.json_response import get_json_response
-from app.models.docs import DocsContent, DocsChunk, DocsEmbeddingFlag, DocsContext
-from app.models.process import create_process, increment_process, finish_process
+from app.models.docs import DocsContent, DocsChunk, DocsContext, Link
+from app.models.process import create_process, increment_process, finish_process, Process
+
+
+class AddContextChunk(MongoEntry):
+    chunk_id: str
+    link: str
+    url: str
 
 
 def add_context_template(
@@ -60,7 +65,7 @@ async def add_context(
         context = await _get_surrounding_context(chunk, content, context_len)
         template = add_context_template(context=context, chunk_text=chunk.content)
         response = await generic_chat(template,
-                                           system_message="You are an AI assistant designed in providing contextual summaries and categorize documents.")
+                                      system_message="You are an AI assistant designed in providing contextual summaries and categorize documents.")
         await mdb.add_entry(DocsContext(
             base_url=chunk.base_url,
             link=chunk.link,
@@ -71,36 +76,29 @@ async def add_context(
 
 async def add_context_links(
         mdb: MongoDBDatabase,
-        links: List[str],
         docs_url: str,
 ):
-    process = await create_process(
-        url=docs_url,
-        end=await _get_add_context_length(mdb, docs_url, links),
-        process_type="context",
-        mdb=mdb,
-        type="docs"
-    )
+    process = await _get_add_context_length(mdb, docs_url)
 
     context_len = 50000
     count = 0
 
-    async for chunk in mdb.stream_entries_dict(
-            collection_name="ProcessChunk",
-            doc_filter={"url": docs_url, "process": "context"}
+    async for chunk in mdb.stream_entries(
+            class_type=AddContextChunk,
+            doc_filter={"url": docs_url}
     ):
-        chunk_id = chunk["chunk_id"]
-        chunk = await mdb.get_entry(ObjectId(chunk_id), DocsChunk)
-
         await increment_process(process, mdb, count, 5)
+        chunk = await mdb.get_entry(ObjectId(chunk.chunk_id), DocsChunk)
 
         while True:
             try:
                 await add_context(chunk, context_len, mdb)
+                chunk.context_processed = True
+                await mdb.update_entry(chunk)
                 break
             except Exception as e:
                 logging.info(f"Adjusting the context_length. Current context length: {context_len}")
-                context_len-=500
+                context_len -= 500
                 logging.error(e)
 
             if context_len < 1000:
@@ -109,43 +107,41 @@ async def add_context_links(
 
         count += 1
 
-
     await finish_process(process, mdb)
     await mdb.delete_entries(
-        class_type=DocsChunk,
-        collection_name="ProcessChunk",
-        doc_filter={"url": docs_url, "process": "context"})
+        class_type=AddContextChunk,
+        doc_filter={"url": docs_url}
+    )
 
 
 async def _get_add_context_length(
         mdb: MongoDBDatabase,
         docs_url: str,
-        links: List[str],
-) -> int:
+) -> Process:
     await mdb.delete_entries(
-        class_type=DocsChunk,
-        collection_name="ProcessChunk",
-        doc_filter={"url": docs_url, "process": "context"})
+        class_type=AddContextChunk,
+        doc_filter={"url": docs_url, "processed": False,}
+    )
 
     count = 0
-    for link in links:
-        flag = await mdb.get_entry_from_col_value(
-            column_name="link",
-            column_value=link,
-            class_type=DocsEmbeddingFlag
-        )
+    async for link_obj in mdb.stream_entries(
+            class_type=Link,
+            doc_filter={"base_url": docs_url},
+            collection_name="TempLink"
+    ):
+        chunks = await mdb.get_entries(DocsChunk, doc_filter={"link": link_obj.link})
+        chunks = [chunk for chunk in chunks if chunk.doc_len != 1]
+        for chunk in chunks:
+            if not chunk.context_processed:
+                await mdb.add_entry(AddContextChunk(chunk_id=chunk.id, url=docs_url, link=chunk.link))
+                count += 1
 
-        if flag is None:
-            chunks = await mdb.get_entries(DocsChunk, doc_filter={"link": link})
-            chunks = [chunk for chunk in chunks if chunk.doc_len != 1]
-            for chunk in chunks:
-                context = await mdb.get_entry_from_col_value(
-                    column_name="chunk_id",
-                    column_value=chunk.id,
-                    class_type=DocsContext
-                )
-                if context is None:
-                    await mdb.add_entry_dict({"chunk_id": chunk.id, "process": "context", "url": docs_url},
-                                             "ProcessChunk")
-                    count += 1
-    return count
+    process = await create_process(
+        url=docs_url,
+        end=count,
+        process_type="context",
+        mdb=mdb,
+        type="docs"
+    )
+
+    return process

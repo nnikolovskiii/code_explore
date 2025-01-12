@@ -32,6 +32,7 @@ class DocsChunk(MongoEntry):
     doc_len: int
     active: bool = False
     processed: bool = False
+    context_processed: bool = False
 
 class DocsEmbeddingFlag(MongoEntry):
     base_url: str

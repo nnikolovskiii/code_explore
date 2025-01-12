@@ -1,40 +1,37 @@
 import logging
-from typing import List
 
 from bson import ObjectId
 
-from app.databases.mongo_db import MongoDBDatabase
+from app.databases.mongo_db import MongoDBDatabase, MongoEntry
 from app.databases.qdrant_db import QdrantDatabase
 
 from app.models.docs import DocsChunk, DocsContext, Link
-from app.models.process import create_process, increment_process, finish_process
+from app.models.process import create_process, increment_process, finish_process, Process
 
 logger = logging.getLogger(__name__)
 
 
+class EmbeddChunk(MongoEntry):
+    chunk_id: str
+    url: str
+    link: str
+
+
 async def embedd_chunks(
         mdb: MongoDBDatabase,
-        links: List[str],
         docs_url: str,
         qdb: QdrantDatabase,
 ):
-    logging.info("get length")
-    process = await create_process(
-        url=docs_url,
-        end=await _get_embedd_chunks_length(links, docs_url, mdb),
-        process_type="embedd",
-        mdb=mdb,
-        type="docs"
-    )
+    process = await _get_embedd_chunks_length(docs_url, mdb)
 
     count = 0
-    async for chunk in mdb.stream_entries_dict(
-            collection_name="ProcessChunk",
-            doc_filter={"url": docs_url, "process": "embedd"}
+    async for chunk in mdb.stream_entries(
+            class_type=EmbeddChunk,
+            doc_filter={"url": docs_url}
     ):
-        chunk_id = chunk["chunk_id"]
-        chunk = await mdb.get_entry(ObjectId(chunk_id), DocsChunk)
         await increment_process(process, mdb, count, 5)
+
+        chunk = await mdb.get_entry(ObjectId(chunk.chunk_id), DocsChunk)
 
         context = await mdb.get_entry_from_col_value(
             column_name="chunk_id",
@@ -59,53 +56,60 @@ async def embedd_chunks(
 
     await finish_process(process, mdb)
     await mdb.delete_entries(
-        class_type=DocsChunk,
-        collection_name="ProcessChunk",
-        doc_filter={"url": docs_url, "process": "embedd"})
+        class_type=EmbeddChunk,
+        doc_filter={"url": docs_url})
 
-    await _set_embedding_flags(links, docs_url, mdb)
+    await _set_embedding_flags(docs_url, mdb)
+
 
 async def _set_embedding_flags(
-        links: List[str],
         docs_url: str,
         mdb: MongoDBDatabase
 ):
-    for link in links:
-        link_obj = await mdb.get_entry_from_col_value(
+    async for link_obj in mdb.stream_entries(
+            class_type=Link,
+            doc_filter={"base_url": docs_url},
+            collection_name="TempLink"
+    ):
+        num_processed_chunks = await mdb.count_entries(DocsChunk, doc_filter={"link": link_obj.link, "base_url": docs_url,
+                                                                              "processed": True})
+        first_chunk = await mdb.get_entry_from_col_value(
             column_name="link",
-            column_value=link,
-            class_type=Link
+            column_value=link_obj.link,
+            class_type=DocsChunk
         )
 
-        if link_obj and not link_obj.processed:
-            num_processed_chunks = await mdb.count_entries(DocsChunk, doc_filter={"link": link,"base_url":docs_url, "processed": True})
-            first_chunk = await mdb.get_entry_from_col_value(
-                column_name="link",
-                column_value=link,
-                class_type=DocsChunk
-            )
-
-            if first_chunk and first_chunk.doc_len == num_processed_chunks:
-                link_obj.processed = True
-                await mdb.update_entry(link_obj)
+        if first_chunk and first_chunk.doc_len == num_processed_chunks:
+            link_obj.processed = True
+            await mdb.update_entry(link_obj)
 
 
 async def _get_embedd_chunks_length(
-        links: List[str],
         docs_url: str,
         mdb: MongoDBDatabase
-) -> int:
+) -> Process:
     await mdb.delete_entries(
-        class_type=DocsChunk,
-        collection_name="ProcessChunk",
-        doc_filter={"url": docs_url, "process": "embedd"})
+        class_type=EmbeddChunk,
+        doc_filter={"url": docs_url, "processed": False,})
 
     count = 0
-    for link in links:
-        chunks = await mdb.get_entries(DocsChunk, doc_filter={"link": link})
+    async for link_obj in mdb.stream_entries(
+            class_type=Link,
+            doc_filter={"base_url": docs_url},
+            collection_name="TempLink"
+    ):
+        chunks = await mdb.get_entries(DocsChunk, doc_filter={"link": link_obj.link})
         for chunk in chunks:
             if not chunk.processed:
-                await mdb.add_entry_dict({"chunk_id": chunk.id, "process": "embedd", "url": docs_url},
-                                         "ProcessChunk")
+                await mdb.add_entry(EmbeddChunk(chunk_id=chunk.id, url=docs_url, link=chunk.link))
                 count += 1
-    return count
+
+    process = await create_process(
+        url=docs_url,
+        end=count,
+        process_type="embedd",
+        mdb=mdb,
+        type="docs"
+    )
+
+    return process

@@ -1,11 +1,15 @@
 import logging
 from typing import List
 
-from app.databases.mongo_db import MongoDBDatabase
+from app.databases.mongo_db import MongoDBDatabase, MongoEntry
 from langchain_text_splitters import Language
-from app.models.docs import DocsChunk, DocsEmbeddingFlag, DocsContent
-from app.models.process import create_process, increment_process, finish_process
+from app.models.docs import DocsChunk, DocsEmbeddingFlag, DocsContent, Link
+from app.models.process import create_process, increment_process, finish_process, Process
 from app.models.splitters.text_splitters import TextSplitter
+
+class ChunkLink(MongoEntry):
+    link: str
+    url:str
 
 
 async def chunk_content(
@@ -33,7 +37,6 @@ async def chunk_content(
 
 async def chunk_links(
         mdb: MongoDBDatabase,
-        links: List[str],
         docs_url: str,
 ):
     text_splitter = TextSplitter(
@@ -45,28 +48,18 @@ async def chunk_links(
     separators = text_splitter.get_separators_for_language(Language.MARKDOWN, )
     text_splitter._separators = separators
 
-    process = await create_process(
-        url=docs_url,
-        end=await _get_chunk_links_length(links, docs_url, mdb),
-        process_type="chunk",
-        mdb=mdb,
-        type="docs"
-    )
-
-    links = await mdb.get_entries_dict(
-        "ProcessLink",
-        doc_filter={"url": docs_url, "process": "chunk"})
+    process = await _get_chunk_links_length(docs_url, mdb)
 
     count = 0
-    for link in links:
-        link = link["link"]
-
-        if count % 100 == 0:
-            logging.info(count)
+    async for chunk_link in mdb.stream_entries(
+        class_type=ChunkLink,
+        doc_filter={"url": docs_url}
+    ):
         await increment_process(process, mdb, count, 10)
+
         content = await mdb.get_entry_from_col_value(
             column_name="link",
-            column_value=link,
+            column_value=chunk_link.link,
             class_type=DocsContent
         )
         try:
@@ -74,34 +67,42 @@ async def chunk_links(
         except Exception as e:
             logging.error(e)
         count += 1
+
     await finish_process(process, mdb)
+
     await mdb.delete_entries(
-        class_type=DocsChunk,
-        collection_name="ProcessLink",
-        doc_filter={"url": docs_url, "process": "chunk"})
+        class_type=ChunkLink,
+        doc_filter={"url": docs_url})
 
 
-async def _get_chunk_links_length(links: List[str], docs_url: str, mdb: MongoDBDatabase) -> int:
+async def _get_chunk_links_length(docs_url: str, mdb: MongoDBDatabase) -> Process:
     count = 0
     await mdb.delete_entries(
-        class_type=DocsChunk,
-        collection_name="ProcessLink",
-        doc_filter={"url": docs_url, "process": "chunk"})
-    for link in links:
-        flag = await mdb.get_entry_from_col_value(
-            column_name="link",
-            column_value=link,
-            class_type=DocsEmbeddingFlag
-        )
+        class_type=ChunkLink,
+        doc_filter={"url": docs_url})
 
-        chunk = await mdb.get_entry_from_col_value(
+    async for link_obj in mdb.stream_entries(
+            class_type=Link,
+            doc_filter={"base_url": docs_url, "processed": False,},
+            collection_name="TempLink"
+    ):
+        print(link_obj)
+
+        exist_one_chunk = await mdb.get_entry_from_col_value(
             column_name="link",
-            column_value=link,
+            column_value=link_obj.link,
             class_type=DocsChunk
         )
-        if chunk is None and flag is None:
-            logging.info(count)
+        if exist_one_chunk is None:
+            await mdb.add_entry(ChunkLink(link=link_obj.link, url=docs_url))
             count += 1
-            await mdb.add_entry_dict({"link": link, "process": "chunk", "url": docs_url}, "ProcessLink")
 
-    return count
+    process = await create_process(
+        url=docs_url,
+        end=count,
+        process_type="chunk",
+        mdb=mdb,
+        type="docs"
+    )
+
+    return process

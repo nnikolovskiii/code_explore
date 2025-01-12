@@ -9,10 +9,10 @@ from app.models.docs import DocsChunk, DocsEmbeddingFlag, DocsContent, DocsConte
 
 async def mdb_add_indexes():
     mdb = await get_mongo_db()
-    # await mdb.create_index("link", DocsChunk)
-    # await mdb.create_index("link", DocsEmbeddingFlag)
-    # await mdb.create_index("link", DocsContent)
-    # await mdb.create_index("name", Flag)
+    await mdb.create_index("link", DocsChunk)
+    await mdb.create_index("link", DocsEmbeddingFlag)
+    await mdb.create_index("link", DocsContent)
+    await mdb.create_index("name", Flag)
     # await mdb.create_index("active", ChatModel)
     await mdb.create_index("type", ChatApi)
 

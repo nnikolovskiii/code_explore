@@ -89,7 +89,7 @@ class MongoDBDatabase:
             doc_filter: Dict[str, Any] = None,
             collection_name: Optional[str] = None,
     ) -> AsyncGenerator[T, None]:
-        collection_name = class_type.__name__
+        collection_name = class_type.__name__ if collection_name is None else collection_name
         collection = self.db[collection_name]
 
         cursor = collection.find(doc_filter or {})
