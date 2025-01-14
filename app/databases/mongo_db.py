@@ -19,9 +19,10 @@ T = TypeVar('T', bound=MongoEntry)
 class MongoDBDatabase:
     client: AsyncIOMotorClient
 
-    def __init__(self, database_name: str = "library_explore"):
+    def __init__(self, database_name: str = "library_explore", url: Optional[str] = None):
         load_dotenv()
-        url = os.getenv("MONGO_URL")
+        url = os.getenv("MONGO_URL") if url is None else url
+        print(url)
         self.client = AsyncIOMotorClient(f"mongodb://root:example@{url}:27017/")
         self.db = self.client[database_name]
 

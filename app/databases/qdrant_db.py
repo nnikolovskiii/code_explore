@@ -25,9 +25,9 @@ T = TypeVar("T")
 class QdrantDatabase:
     client: AsyncQdrantClient
 
-    def __init__(self):
+    def __init__(self, url: Optional[str] = None):
         load_dotenv()
-        url = os.getenv("QDRANT_URL")
+        url = os.getenv("QDRANT_URL") if url is None else url
         self.client = AsyncQdrantClient(url=f"http://{url}:6333")
 
     async def collection_exists(self, collection_name: str) -> bool:

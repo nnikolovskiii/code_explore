@@ -9,7 +9,7 @@ import logging
 
 from app.databases.qdrant_db import QdrantDatabase
 from app.databases.singletons import get_mongo_db, get_qdrant_db
-from app.docs_process.docs_process_flow import change_active_files, DocsActiveListDto
+from app.docs_process.docs_post_process_flow import change_active_files, DocsActiveListDto
 
 from app.models.docs import Link, DocsUrl
 

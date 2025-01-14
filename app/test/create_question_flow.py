@@ -2,10 +2,10 @@ import asyncio
 import random
 import re
 
-from app.databases.mongo_db import MongoEntry
+from app.databases.mongo_db import MongoEntry, MongoDBDatabase
 from app.databases.singletons import get_mongo_db
 from app.docs_process.post_process.add_context import _get_surrounding_context
-from app.models.docs import DocsChunk
+from app.models.docs import DocsChunk, Link
 from app.test.check_quality import check_quality
 from app.test.create_question import create_question
 
@@ -70,4 +70,17 @@ async def test_flow():
             print(e)
 
 
-asyncio.run(test_flow())
+async def check_existing():
+    mdb_localhost = MongoDBDatabase(url="localhost")
+    links = [question.link for question in await mdb_localhost.get_entries(Question, {"base_url": "https://docs.expo.dev"})]
+    print(len(links))
+    mdb_server = MongoDBDatabase(url="mkpatka.duckdns.org")
+    existing_links = {link_obj.link for link_obj in await mdb_server.get_entries(Link, {"processed": True, "base_url": "https://docs.expo.dev"})}
+    print(len(existing_links))
+    counter = 0
+    for link in links:
+        if link not in existing_links:
+            counter +=1
+    print(counter)
+
+# asyncio.run(check_existing())

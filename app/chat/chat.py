@@ -35,11 +35,10 @@ Important: Use your own knowledge to determine which information from the chunks
 
 
 async def retrieve_relevant_chunks(
-        question: str
+        question: str,
+        mdb: MongoDBDatabase,
 ) -> List[DocsChunk]:
     qdb = await get_qdrant_db()
-    mdb = await get_mongo_db()
-
     docs_objs = await mdb.get_entries(DocsUrl, doc_filter={"active": True})
     docs_urls = [docs_obj.url for docs_obj in docs_objs]
     print(docs_urls)
@@ -58,7 +57,7 @@ async def chat(
         mdb: MongoDBDatabase,
         history: List[Dict[str, str]] = None,
 ):
-    relevant_chunks = await retrieve_relevant_chunks(message)
+    relevant_chunks = await retrieve_relevant_chunks(message, mdb=mdb)
     references = {(relevant_chunk.link, relevant_chunk.link.split(relevant_chunk.base_url)[1]) for relevant_chunk in relevant_chunks}
     chunk_contents = [chunk.content for chunk in relevant_chunks]
     template = chat_template(chunk_contents, message)
