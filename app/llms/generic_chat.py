@@ -21,11 +21,11 @@ class ChatModel(Enum):
 async def generic_chat(
         message: str,
         system_message: str = "You are a helpful AI assistant.",
-        model:str = None
+        chat_model: str = None
 ) -> str:
     load_dotenv()
-
-    chat_model = os.getenv("CHAT_MODEL")
+    chat_model = os.getenv("CHAT_MODEL") if chat_model is None else chat_model
+    print(chat_model)
 
     if chat_model == ChatModel.OPENAI.value:
         return chat_with_openai(message, system_message)
@@ -34,6 +34,6 @@ async def generic_chat(
     elif chat_model == ChatModel.NIM.value:
         return chat_with_nim(message, system_message)
     elif chat_model == ChatModel.HF_INF.value:
-        return await chat_with_hf_inference(message, system_message, model)
+        return await chat_with_hf_inference(message, system_message)
     elif chat_model == ChatModel.CUSTOM_API.value:
         return chat_with_custom_api(message)

@@ -39,3 +39,5 @@ def chat_with_openai(
         return response_data['choices'][0]['message']['content']
     else:
         response.raise_for_status()
+
+# print(chat_with_openai("What are you?", "You are a helpful AI assistant"))

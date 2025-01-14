@@ -32,11 +32,13 @@ Give a short succinct context to situate this chunk within the overall document 
 
 async def _get_surrounding_context(
         chunk: DocsChunk,
-        content: DocsContent,
+        mdb: MongoDBDatabase,
         context_len: int
 ) -> str:
     start_index = chunk.start_index
     end_index = chunk.end_index
+
+    content = await mdb.get_entry(ObjectId(chunk.content_id), DocsContent)
     content = content.content
 
     tmp1 = min(end_index + context_len, len(content))
@@ -60,9 +62,7 @@ async def add_context(
         mdb: MongoDBDatabase
 ):
     if chunk.doc_len > 1:
-        content = await mdb.get_entry(ObjectId(chunk.content_id), DocsContent)
-
-        context = await _get_surrounding_context(chunk, content, context_len)
+        context = await _get_surrounding_context(chunk=chunk, context_len=context_len, mdb=mdb)
         template = add_context_template(context=context, chunk_text=chunk.content)
         response = await generic_chat(template,
                                       system_message="You are an AI assistant designed in providing contextual summaries and categorize documents.")
