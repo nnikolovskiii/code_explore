@@ -90,7 +90,7 @@ async def _get_embedd_chunks_length(
 ) -> Process:
     await mdb.delete_entries(
         class_type=EmbeddChunk,
-        doc_filter={"url": docs_url, "processed": False,})
+        doc_filter={"url": docs_url})
 
     count = 0
     async for link_obj in mdb.stream_entries(

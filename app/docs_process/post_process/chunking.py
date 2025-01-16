@@ -86,8 +86,6 @@ async def _get_chunk_links_length(docs_url: str, mdb: MongoDBDatabase) -> Proces
             doc_filter={"base_url": docs_url, "processed": False,},
             collection_name="TempLink"
     ):
-        print(link_obj)
-
         exist_one_chunk = await mdb.get_entry_from_col_value(
             column_name="link",
             column_value=link_obj.link,

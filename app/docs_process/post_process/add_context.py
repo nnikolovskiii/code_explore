@@ -38,8 +38,8 @@ async def _get_surrounding_context(
     start_index = chunk.start_index
     end_index = chunk.end_index
 
-    content = await mdb.get_entry(ObjectId(chunk.content_id), DocsContent)
-    content = content.content
+    content_obj = await mdb.get_entry(ObjectId(chunk.content_id), DocsContent)
+    content = content_obj.content
 
     tmp1 = min(end_index + context_len, len(content))
     tmp2 = max(start_index - context_len, 0)
@@ -83,12 +83,12 @@ async def add_context_links(
     context_len = 50000
     count = 0
 
-    async for chunk in mdb.stream_entries(
+    async for add_context_chunk in mdb.stream_entries(
             class_type=AddContextChunk,
             doc_filter={"url": docs_url}
     ):
         await increment_process(process, mdb, count, 5)
-        chunk = await mdb.get_entry(ObjectId(chunk.chunk_id), DocsChunk)
+        chunk = await mdb.get_entry(ObjectId(add_context_chunk.chunk_id), DocsChunk)
 
         while True:
             try:
@@ -120,7 +120,7 @@ async def _get_add_context_length(
 ) -> Process:
     await mdb.delete_entries(
         class_type=AddContextChunk,
-        doc_filter={"url": docs_url, "processed": False,}
+        doc_filter={"url": docs_url}
     )
 
     count = 0
