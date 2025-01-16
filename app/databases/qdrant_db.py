@@ -161,7 +161,7 @@ class QdrantDatabase:
             with_vectors: bool = True,
             filter: Optional[Dict[Tuple[str, str], Any]] = None,
     ):
-        field_condition = QdrantDatabase._generate_filter(filters=filter)
+        field_condition = QdrantDatabase._generate_filter(filters=filter) if filter is not None else None
         offset = None
         while True:
             response = await self.client.scroll(

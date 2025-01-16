@@ -6,6 +6,7 @@ from app.databases.qdrant_db import QdrantDatabase
 from app.models.docs import DocsChunk
 from app.test.create_question_flow import Question
 
+
 async def retrieve_relevant_chunks(
         question: str,
         qdb: QdrantDatabase,
