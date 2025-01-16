@@ -14,6 +14,8 @@ class Link(MongoEntry):
     active: bool = False
     color: Optional[str] = None
     processed: bool = False
+    traversed: bool = False
+    batch: int = 1
 
 
 class DocsContent(MongoEntry):

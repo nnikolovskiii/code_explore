@@ -11,7 +11,7 @@ import shutil
 from app.databases.qdrant_db import QdrantDatabase
 from app.databases.singletons import get_mongo_db, get_qdrant_db
 from app.docs_process.pre_process.extract_content import extract_contents
-from app.docs_process.pre_process.traverse_sites import traverse_links, check_prev_links, set_parent_flags, ProcessLink
+from app.docs_process.pre_process.traverse_sites import traverse_links, check_prev_links, set_parent_flags
 from app.models.docs import DocsUrl, Link, DocsContent, DocsChunk, DocsContext, DocsEmbeddingFlag
 from app.models.process import Process
 from app.models.simple_process import create_simple_process, finish_simple_process, SimpleProcess
@@ -52,7 +52,6 @@ async def extract_library(
             await mdb.delete_entries(DocsEmbeddingFlag, doc_filter={"base_url": docs_url})
             await mdb.delete_entries(Process, doc_filter={"url": docs_url})
             await mdb.delete_entries(SimpleProcess, doc_filter={"url": docs_url})
-            await mdb.delete_entries(ProcessLink, doc_filter={"url": docs_url})
             await mdb.delete_entries(Link, collection_name="TempLink", doc_filter={"base_url": docs_url})
 
         urls = await mdb.get_entries(DocsUrl, doc_filter={"url": docs_url})

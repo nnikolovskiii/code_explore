@@ -1,40 +1,16 @@
-# import os
-#
-# from huggingface_hub import InferenceClient
-#
-# hf_api_key = os.getenv("HF_API_KEY")
-#
-# client = InferenceClient(api_key=hf_api_key)
-#
-# messages = [
-# 	{
-# 		"role": "user",
-# 		"content": "What is the capital of France?"
-# 	}
-# ]
-#
-# completion = client.chat.completions.create(
-#     model="meta-llama/Llama-3.2-3B-Instruct",
-# 	messages=messages,
-# 	max_tokens=500
-# )
-#
-#
-# print(completion.choices[0].message)
 import asyncio
 
-from app.databases.singletons import get_mongo_db, get_qdrant_db
-from app.models.docs import DocsContent, DocsChunk, Link
+from app.databases.mongo_db import MongoDBDatabase
+from app.models.docs import Link
 
 
-async def lol():
-	mdb = await get_mongo_db()
-	chunks = await mdb.get_entries(DocsChunk,doc_filter={"active": True, "base_url": "https://fastapi.tiangolo.com"})
-	for chunk in chunks:
-		print(chunk)
-	links = await mdb.get_entries(Link,doc_filter={"active": True, "base_url": "https://fastapi.tiangolo.com"})
+async def check_duplicate_links():
+	mdb = MongoDBDatabase()
+	links = await mdb.get_entries(Link, doc_filter={"base_url": 'https://docs.expo.dev'})
+	links_set = set()
 	for link in links:
-		print(link)
+		links_set.add(link.link)
 
+	print(len(links_set), len(links))
 
-# asyncio.run(lol())
+asyncio.run(check_duplicate_links())

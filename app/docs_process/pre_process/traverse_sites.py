@@ -32,15 +32,14 @@ def _get_neighbouring_links(url: str) -> set:
         print(f"Failed to retrieve the page: {e}")
         return set()
 
-class ProcessLink(MongoEntry):
-    process: str
-    link: str
-    url: str
-    finished: bool = False
 
-
-async def traverse_links(docs_url: str, patterns:List[str],process: SimpleProcess, mdb: MongoDBDatabase):
-    await mdb.add_entry(ProcessLink(process= "traverse", link=docs_url, url= docs_url))
+async def traverse_links(docs_url: str, patterns: List[str], process: SimpleProcess, mdb: MongoDBDatabase):
+    await mdb.add_entry(Link(
+        base_url=docs_url,
+        prev_link=docs_url,
+        link=docs_url,
+        batch=1
+    ))
 
     regex_li = []
     if patterns is not None:
@@ -49,69 +48,69 @@ async def traverse_links(docs_url: str, patterns:List[str],process: SimpleProces
 
     num_iterations = 0
     while True:
-        num_iterations+=1
+        num_iterations += 1
         curr_count = 0
-        num_links = await mdb.count_entries(ProcessLink, {"finished": False, "url": docs_url})
+        num_links = await mdb.count_entries(Link, {"traversed": False, "base_url": docs_url, "batch": num_iterations})
         if num_links == 0:
             break
-        async for url in mdb.stream_entries(ProcessLink, {"finished":False, "url": docs_url}):
-            if curr_count % 5 == 0:
-                await update_status_process(f"Iteration: {num_iterations}\nProgress Bar: {curr_count}/{num_links}", process, mdb)
-            url.finished = True
-            await mdb.update_entry(url)
-            # checked.add(url)
 
-            neighbours = _get_neighbouring_links(url.link)
+        async for link_obj in mdb.stream_entries(Link, {"traversed": False, "base_url": docs_url, "batch": num_iterations}):
+            if curr_count % 5 == 0:
+                await update_status_process(f"Iteration: {num_iterations}\nProgress Bar: {curr_count}/{num_links}",
+                                            process, mdb)
+            curr_count += 1
+            link_obj.traversed = True
+            await mdb.update_entry(link_obj)
+
+            neighbours = _get_neighbouring_links(link_obj.link)
             for link in neighbours:
+                link = link if link[-1] != "/" else link[:-1]
+                # regex matching
                 not_in_regex = True
                 if patterns is not None:
                     for regex in regex_li:
                         if regex.search(link):
                             not_in_regex = False
                             break
-                check_link = await mdb.get_entry_from_col_values(
-                    columns={"link": link},
-                    class_type=ProcessLink,
-                )
-                if docs_url in link and check_link is None and not_in_regex:
-                    await mdb.add_entry(ProcessLink(process="traverse", link=link, url=docs_url))
 
+
+                link_already_exists = await mdb.get_entry_from_col_value(
+                    column_name="link",
+                    column_value=link,
+                    class_type=Link
+                )
+
+                if docs_url in link and link_already_exists is None and not_in_regex:
                     if link != docs_url and link != docs_url + "/":
-                        li: list[str] =  link.split("/")
+                        li: list[str] = link.split("/")
                         if li[-1].strip() == "":
                             prev_link = "/".join(li[:-2])
                         else:
                             prev_link = "/".join(li[:-1])
 
-                        link = link if link[-1] != "/" else link[:-1]
-
                         link_obj = Link(
                             base_url=docs_url,
                             prev_link=prev_link,
                             link=link,
+                            batch=num_iterations+1
                         )
-                        await mdb.add_entry(link_obj)
-
-            curr_count+=1
-
-
-    link = docs_url if docs_url[-1] != "/" else docs_url[:-1]
-    link_obj = Link(
-        base_url=docs_url,
-        prev_link=link,
-        link=link,
-    )
-    await mdb.add_entry(link_obj)
-    await mdb.delete_entries(ProcessLink, {"url": docs_url})
+                        try:
+                            await mdb.add_entry(link_obj)
+                        except Exception as e:
+                            print(e)
+                            print("*********")
+                            print(link_already_exists)
+                            print(link)
 
 
-async def check_prev_links(docs_url: str,process: SimpleProcess, mdb: MongoDBDatabase):
+
+async def check_prev_links(docs_url: str, process: SimpleProcess, mdb: MongoDBDatabase):
     num_links = await mdb.count_entries(Link, {"base_url": docs_url})
     counter = 0
     async for link in mdb.stream_entries(Link, {"base_url": docs_url}):
         if counter % 5 == 0:
             await update_status_process(f"Progress bar: {counter}/{num_links}", process, mdb)
-        counter +=1
+        counter += 1
 
         curr_link = link.prev_link
         while True:
@@ -138,14 +137,15 @@ async def check_prev_links(docs_url: str,process: SimpleProcess, mdb: MongoDBDat
     )
     await mdb.delete_entity(base_link)
 
-async def set_parent_flags(docs_url: str,process: SimpleProcess, mdb: MongoDBDatabase):
+
+async def set_parent_flags(docs_url: str, process: SimpleProcess, mdb: MongoDBDatabase):
     num_links = await mdb.count_entries(Link, {"base_url": docs_url})
     counter = 0
 
     async for link in mdb.stream_entries(Link, {"base_url": docs_url}):
         if counter % 5 == 0:
             await update_status_process(f"Progress bar: {counter}/{num_links}", process, mdb)
-        counter +=1
+        counter += 1
 
         first_link_obj = await mdb.get_entry_from_col_value(
             column_name="prev_link",
