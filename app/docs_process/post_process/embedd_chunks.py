@@ -66,11 +66,17 @@ async def _set_embedding_flags(
         docs_url: str,
         mdb: MongoDBDatabase
 ):
-    async for link_obj in mdb.stream_entries(
+    async for temp_link in mdb.stream_entries(
             class_type=Link,
             doc_filter={"base_url": docs_url, "processed": False},
             collection_name="TempLink"
     ):
+        link_obj = await mdb.get_entry_from_col_value(
+            column_name="link",
+            column_value=temp_link.link,
+            class_type=Link
+        )
+
         num_processed_chunks = await mdb.count_entries(DocsChunk, doc_filter={"link": link_obj.link, "base_url": docs_url,
                                                                               "processed": True})
         first_chunk = await mdb.get_entry_from_col_value(
