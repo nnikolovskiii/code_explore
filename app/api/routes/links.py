@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, List, Set
 
 from fastapi import APIRouter, Depends
 from openai import BaseModel
@@ -63,7 +63,7 @@ async def activate_link(link:str, active_status:bool, mdb: mdb_dep, qdb: qdb_dep
         class_type=Link
     )
     link_obj.active = active_status
-    await _update_links_qdrant(qdb=qdb,link_obj=link_obj)
+    await _update_links_qdrant(qdb=qdb,links={link_obj.link}, active_status=link_obj.active)
 
     await mdb.update_entry(link_obj)
 
@@ -76,44 +76,58 @@ async def activate_all_links_from_parent_recursively(prev_link: str, active_stat
         class_type=Link
     )
 
+    links_set: Set[str] = set()
+
     if link_obj:
         link_obj.active = active_status
         await mdb.update_entry(link_obj)
-        await _update_links_qdrant(qdb=qdb,link_obj=link_obj)
+        links_set.add(link_obj.link)
 
     links = await mdb.get_entries(Link, doc_filter={"prev_link": prev_link})
     while len(links) > 0:
         link = links.pop()
         link.active = active_status
         await mdb.update_entry(link)
-        await _update_links_qdrant(qdb=qdb, link_obj=link)
         links.extend(await mdb.get_entries(Link, doc_filter={"prev_link": link.link}))
+        links_set.add(link_obj.link)
+
+    await _update_links_qdrant(qdb=qdb, links=links_set, active_status=active_status)
+
 
 @router.get("/activate_all_links_from_docs_url/")
 async def activate_all_links_from_docs_url(docs_url: str, active_status: bool, mdb: mdb_dep, qdb: qdb_dep):
     links = await mdb.get_entries(Link, doc_filter={"base_url": docs_url})
+    links_set: Set[str] = set()
+
     for link in links:
         link.active = active_status
         await mdb.update_entry(link)
-        await _update_links_qdrant(qdb=qdb, link_obj=link)
+        links_set.add(link.link)
+
+    await _update_links_qdrant(qdb=qdb, links=links_set, active_status=active_status)
 
 
 @router.get("/activate_all_links_from_parent/")
 async def activate_all_links_from_parent(prev_link: str, active_status: bool, mdb: mdb_dep, qdb: qdb_dep):
     links = await mdb.get_entries(Link, doc_filter={"prev_link": prev_link})
+    links_set: Set[str] = set()
     for link in links:
         link.active = active_status
         await mdb.update_entry(link)
-        await _update_links_qdrant(qdb=qdb, link_obj=link)
+        links_set.add(link.link)
+
+    await _update_links_qdrant(qdb=qdb, links=links_set, active_status=active_status)
+
 
 
 async def _update_links_qdrant(
         qdb: QdrantDatabase,
-        link_obj: Link
+        links: Set[str],
+        active_status: bool,
 ):
     await update_records(
         qdb=qdb,
         collection_name="DocsChunk",
-        filter={("link", "value"): link_obj.link},
-        update={"active": link_obj.active},
+        filter={("link", "any"): list(links)},
+        update={"active": active_status},
     )
