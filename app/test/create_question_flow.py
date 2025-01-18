@@ -29,7 +29,7 @@ def _print(
     print("***********************************")
 
 
-async def test_flow():
+async def create_questions_flow():
     mdb = await get_mongo_db()
     docs_chunks = await mdb.get_entries(DocsChunk, {"processed": True, "base_url": "https://docs.expo.dev"})
     visited = {question.chunk_id for question in await mdb.get_entries(Question, {"base_url": "https://docs.expo.dev"})}

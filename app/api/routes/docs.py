@@ -52,7 +52,6 @@ async def extract_library(
             await mdb.delete_entries(DocsEmbeddingFlag, doc_filter={"base_url": docs_url})
             await mdb.delete_entries(Process, doc_filter={"url": docs_url})
             await mdb.delete_entries(SimpleProcess, doc_filter={"url": docs_url})
-            await mdb.delete_entries(Link, collection_name="TempLink", doc_filter={"base_url": docs_url})
 
         urls = await mdb.get_entries(DocsUrl, doc_filter={"url": docs_url})
         if len(urls) == 0:
@@ -94,3 +93,24 @@ async def extract_library(
     except Exception as e:
         logging.exception("Error cloning library")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/get_docs_urls/")
+async def get_git_urls(mdb: mdb_dep):
+    try:
+        docs_urls = await mdb.get_entries(DocsUrl)
+        return {"docs_urls": docs_urls}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/activate_docs_url/")
+async def activate_docs_url(docs_url:str, active_status:bool, mdb: mdb_dep):
+    docs_url_obj = await mdb.get_entry_from_col_value(
+        column_name="url",
+        column_value=docs_url,
+        class_type=DocsUrl
+    )
+    docs_url_obj.active = active_status
+    await mdb.update_entry(docs_url_obj)
+
+

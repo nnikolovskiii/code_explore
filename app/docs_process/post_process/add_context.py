@@ -78,7 +78,10 @@ async def add_context_links(
         mdb: MongoDBDatabase,
         docs_url: str,
 ):
-    process = await _get_add_context_length(mdb, docs_url)
+    process = await _create_context_process(mdb, docs_url)
+
+    if process is None:
+        return
 
     context_len = 50000
     count = 0
@@ -114,10 +117,10 @@ async def add_context_links(
     )
 
 
-async def _get_add_context_length(
+async def _create_context_process(
         mdb: MongoDBDatabase,
         docs_url: str,
-) -> Process:
+) -> Process | None:
     await mdb.delete_entries(
         class_type=AddContextChunk,
         doc_filter={"url": docs_url}
@@ -126,8 +129,7 @@ async def _get_add_context_length(
     count = 0
     async for link_obj in mdb.stream_entries(
             class_type=Link,
-            doc_filter={"base_url": docs_url, "processed": False},
-            collection_name="TempLink"
+            doc_filter={"base_url": docs_url, "processed": False, "active": True},
     ):
         chunks = await mdb.get_entries(DocsChunk, doc_filter={"link": link_obj.link})
         chunks = [chunk for chunk in chunks if chunk.doc_len != 1]
@@ -136,12 +138,13 @@ async def _get_add_context_length(
                 await mdb.add_entry(AddContextChunk(chunk_id=chunk.id, url=docs_url, link=chunk.link))
                 count += 1
 
-    process = await create_process(
-        url=docs_url,
-        end=count,
-        process_type="context",
-        mdb=mdb,
-        type="docs"
-    )
+    if count > 0:
+        return await create_process(
+            url=docs_url,
+            end=count,
+            process_type="context",
+            mdb=mdb,
+            type="docs"
+        )
 
-    return process
+    return None

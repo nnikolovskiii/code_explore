@@ -48,7 +48,10 @@ async def chunk_links(
     separators = text_splitter.get_separators_for_language(Language.MARKDOWN, )
     text_splitter._separators = separators
 
-    process = await _get_chunk_links_length(docs_url, mdb)
+    process = await _create_chunk_process(docs_url, mdb)
+
+    if process is None:
+        return
 
     count = 0
     async for chunk_link in mdb.stream_entries(
@@ -75,7 +78,7 @@ async def chunk_links(
         doc_filter={"url": docs_url})
 
 
-async def _get_chunk_links_length(docs_url: str, mdb: MongoDBDatabase) -> Process:
+async def _create_chunk_process(docs_url: str, mdb: MongoDBDatabase) -> Process | None:
     count = 0
     await mdb.delete_entries(
         class_type=ChunkLink,
@@ -83,8 +86,7 @@ async def _get_chunk_links_length(docs_url: str, mdb: MongoDBDatabase) -> Proces
 
     async for link_obj in mdb.stream_entries(
             class_type=Link,
-            doc_filter={"base_url": docs_url, "processed": False,},
-            collection_name="TempLink"
+            doc_filter={"base_url": docs_url, "processed": False, "active": True},
     ):
         exist_one_chunk = await mdb.get_entry_from_col_value(
             column_name="link",
@@ -95,12 +97,13 @@ async def _get_chunk_links_length(docs_url: str, mdb: MongoDBDatabase) -> Proces
             await mdb.add_entry(ChunkLink(link=link_obj.link, url=docs_url))
             count += 1
 
-    process = await create_process(
-        url=docs_url,
-        end=count,
-        process_type="chunk",
-        mdb=mdb,
-        type="docs"
-    )
+    if count > 0:
+        return await create_process(
+            url=docs_url,
+            end=count,
+            process_type="chunk",
+            mdb=mdb,
+            type="docs"
+        )
 
-    return process
+    return None

@@ -1,4 +1,3 @@
-import asyncio
 from typing import Optional, Dict, Any, List, Tuple
 
 from qdrant_client.conversions.common_types import Record

@@ -4,10 +4,9 @@ from fastapi import HTTPException, APIRouter, Depends
 from pydantic import BaseModel
 
 from app.code_process.code_process_flow import process_code_files, change_active_files, FileActiveListDto
-from app.code_process.post_process.active_status import update_records
 from app.code_process.post_process.add_context import add_context_chunks
 from app.code_process.post_process.embedd_chunks import create_final_chunks, embedd_chunks
-from app.code_process.pre_process.extract_content import extract_contents, chunk_code, chunk_files, chunk_all_code
+from app.code_process.pre_process.extract_content import extract_contents, chunk_all_code
 from app.code_process.pre_process.git_utils import clone_git_repo
 from app.databases.mongo_db import MongoDBDatabase
 

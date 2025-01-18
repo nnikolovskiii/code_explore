@@ -140,7 +140,7 @@ class QdrantDatabase:
             response = await self.client.scroll(
                 collection_name=collection_name,
                 scroll_filter=field_condition,
-                limit=50,
+                limit=1000,
                 offset=offset,
                 with_payload=True,
                 with_vectors=with_vectors,
@@ -148,8 +148,7 @@ class QdrantDatabase:
             records = response[0]
             if len(records) != 0:
                 await function(records)
-            else:
-                print("MUSTAAAAAAAAAAAAAARD")
+
             offset = response[-1]
             if offset is None:
                 break
@@ -167,7 +166,7 @@ class QdrantDatabase:
             response = await self.client.scroll(
                 collection_name=collection_name,
                 scroll_filter=field_condition,
-                limit=50,
+                limit=1000,
                 offset=offset,
                 with_payload=True,
                 with_vectors=with_vectors,
@@ -234,8 +233,6 @@ class QdrantDatabase:
     async def update_points(
         self, collection_name: str, ids: List[str], update: Dict[str, Any]
     ):
-        print(ids)
-        print(update)
         await self.client.set_payload(
             collection_name=collection_name,
             wait=True,

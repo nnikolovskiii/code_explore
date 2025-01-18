@@ -2,7 +2,7 @@ from typing import List
 
 from pydantic import BaseModel
 
-from app.code_process.post_process.active_status import update_records
+from app.utils.qdrant_utils import update_records
 from app.code_process.post_process.add_context import add_context_chunks
 from app.code_process.post_process.embedd_chunks import create_final_chunks, embedd_chunks
 from app.code_process.pre_process.extract_content import chunk_files
