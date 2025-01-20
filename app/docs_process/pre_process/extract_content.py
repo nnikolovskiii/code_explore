@@ -6,7 +6,7 @@ from app.databases.mongo_db import MongoDBDatabase
 from bs4 import BeautifulSoup, Tag
 
 from app.models.docs import DocsContent, Link
-from app.models.simple_process import SimpleProcess, update_status_process
+from app.models.process import Process, set_end, increment_process, finish_process
 
 
 async def _get_beautiful_soup(
@@ -60,14 +60,15 @@ async def extract_contents(
         selector: str,
         selector_type: str,
         selector_attrs: str,
-        process: SimpleProcess,
+        process: Process,
         mdb: MongoDBDatabase
 ):
     counter = 0
     num_links = await mdb.count_entries(Link, {"base_url": docs_url})
+    await set_end(process, num_links, mdb)
+
     async for link_obj in mdb.stream_entries(Link, {"base_url": docs_url}):
-        if counter % 5 == 0:
-            await update_status_process(f"Progress bar: {counter}/{num_links}", process, mdb)
+        await increment_process(process, mdb, counter)
         counter += 1
 
         link = link_obj.link
@@ -90,3 +91,5 @@ async def extract_contents(
         except Exception as e:
             await mdb.delete_entity(link_obj)
             print(f"An unexpected error occurred: {e}")
+
+    await finish_process(process, mdb)

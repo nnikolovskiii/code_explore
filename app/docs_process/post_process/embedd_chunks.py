@@ -113,9 +113,11 @@ async def _create_embedd_process(
         return await create_process(
             url=docs_url,
             end=count,
+            curr=0,
             process_type="embedd",
             mdb=mdb,
-            type="docs"
+            type="docs",
+            group="post"
         )
 
     return None

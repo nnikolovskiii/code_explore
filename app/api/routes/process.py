@@ -9,9 +9,7 @@ import logging
 
 from app.databases.qdrant_db import QdrantDatabase
 from app.databases.singletons import get_mongo_db, get_qdrant_db
-from app.models.docs import DocsUrl
-from app.models.process import Process
-from app.models.simple_process import SimpleProcess, create_simple_process
+from app.models.process import Process, create_process
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -22,18 +20,18 @@ qdb_dep = Annotated[QdrantDatabase, Depends(get_qdrant_db)]
 
 
 @router.get("/get_finished_processes/")
-async def get_finished_processes(mdb: mdb_dep):
+async def get_finished_processes(group: str, mdb: mdb_dep):
     try:
-        finished_processes = await mdb.get_entries(Process, doc_filter={"finished": True,})
+        finished_processes = await mdb.get_entries(Process, doc_filter={"finished": True, "group": group})
 
         return {"processes": finished_processes}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/get_ongoing_processes/")
-async def get_ongoing_processes(mdb: mdb_dep):
+async def get_ongoing_processes(group: str, mdb: mdb_dep):
     try:
-        ongoing_processes = await mdb.get_entries(Process, doc_filter={"finished": False,})
+        ongoing_processes = await mdb.get_entries(Process, doc_filter={"finished": False, "group": group})
 
         return {"processes": ongoing_processes}
     except Exception as e:
@@ -48,34 +46,38 @@ async def refresh_progress(process_id:str, mdb: mdb_dep):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/get_pre_processes/")
-async def get_pre_processes(url:str, mdb: mdb_dep):
+@router.get("/get_processes_from_url/")
+async def get_processes_from_url(url:str, group: str, mdb: mdb_dep):
     try:
-        process_objs = await mdb.get_entries(SimpleProcess, doc_filter={"url": url})
+        process_objs = await mdb.get_entries(Process, doc_filter={"url": url, "group":group})
         process_dict = {process_obj.process_type: (process_obj.finished, process_obj.order) for process_obj in process_objs}
         return process_dict
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/get_pre_process/")
-async def get_pre_processes(url:str, process_type:str, mdb: mdb_dep):
+@router.get("/get_process/")
+async def get_process(url:str, process_type:str, group: str, mdb: mdb_dep):
     try:
-        process_objs = await mdb.get_entries(SimpleProcess, doc_filter={"url": url, "process_type": process_type})
-        return process_objs[0]
+        process = await mdb.get_entry_from_col_values(
+            columns={"url": url, "process_type": process_type, "group": group},
+            class_type=Process
+        )
+        return process
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.delete("/delete_pre_process/")
-async def delete_pre_process(url:str, mdb: mdb_dep):
+@router.delete("/create_processes/")
+async def create_processes(url:str, group:str, mdb: mdb_dep):
     try:
-        await mdb.delete_entries(SimpleProcess, doc_filter={"url": url})
-        await create_simple_process(
+        await mdb.delete_entries(Process, doc_filter={"url": url, "group": group})
+        await create_process(
             url=url,
             mdb=mdb,
             process_type="main",
             type="docs",
             order=0,
-            status="Started the process. Please refresh."
+            status="Started the process. Please refresh.",
+            group="pre"
         )
         return True
     except Exception as e:

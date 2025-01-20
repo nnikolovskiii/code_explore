@@ -9,7 +9,7 @@ from tqdm import tqdm
 import re
 
 from app.models.docs import Link
-from app.models.simple_process import SimpleProcess, update_status_process
+from app.models.process import Process, increment_process, update_status_process, set_end, finish_process
 
 
 def _get_neighbouring_links(url: str) -> set:
@@ -33,7 +33,7 @@ def _get_neighbouring_links(url: str) -> set:
         return set()
 
 
-async def traverse_links(docs_url: str, patterns: List[str], process: SimpleProcess, mdb: MongoDBDatabase):
+async def traverse_links(docs_url: str, patterns: List[str], process: Process, mdb: MongoDBDatabase):
     await mdb.add_entry(Link(
         base_url=docs_url,
         prev_link=docs_url,
@@ -51,13 +51,16 @@ async def traverse_links(docs_url: str, patterns: List[str], process: SimpleProc
         num_iterations += 1
         curr_count = 0
         num_links = await mdb.count_entries(Link, {"traversed": False, "base_url": docs_url, "batch": num_iterations})
+
+        await update_status_process(f"Iteration: {num_iterations}", process, mdb)
+        await set_end(process, num_links, mdb)
+
         if num_links == 0:
             break
 
-        async for link_obj in mdb.stream_entries(Link, {"traversed": False, "base_url": docs_url, "batch": num_iterations}):
-            if curr_count % 5 == 0:
-                await update_status_process(f"Iteration: {num_iterations}\nProgress Bar: {curr_count}/{num_links}",
-                                            process, mdb)
+        async for link_obj in mdb.stream_entries(Link,
+                                                 {"traversed": False, "base_url": docs_url, "batch": num_iterations}):
+            await increment_process(process=process, mdb=mdb, num=curr_count)
             curr_count += 1
             link_obj.traversed = True
             await mdb.update_entry(link_obj)
@@ -72,7 +75,6 @@ async def traverse_links(docs_url: str, patterns: List[str], process: SimpleProc
                         if regex.search(link):
                             not_in_regex = False
                             break
-
 
                 link_already_exists = await mdb.get_entry_from_col_value(
                     column_name="link",
@@ -92,7 +94,7 @@ async def traverse_links(docs_url: str, patterns: List[str], process: SimpleProc
                             base_url=docs_url,
                             prev_link=prev_link,
                             link=link,
-                            batch=num_iterations+1
+                            batch=num_iterations + 1
                         )
                         try:
                             await mdb.add_entry(link_obj)
@@ -102,14 +104,17 @@ async def traverse_links(docs_url: str, patterns: List[str], process: SimpleProc
                             print(link_already_exists)
                             print(link)
 
+    await finish_process(process, mdb)
 
 
-async def check_prev_links(docs_url: str, process: SimpleProcess, mdb: MongoDBDatabase):
+
+async def check_prev_links(docs_url: str, process: Process, mdb: MongoDBDatabase):
     num_links = await mdb.count_entries(Link, {"base_url": docs_url})
+
+    await set_end(process, num_links, mdb)
     counter = 0
     async for link in mdb.stream_entries(Link, {"base_url": docs_url}):
-        if counter % 5 == 0:
-            await update_status_process(f"Progress bar: {counter}/{num_links}", process, mdb)
+        await increment_process(process, mdb, counter)
         counter += 1
 
         curr_link = link.prev_link
@@ -136,15 +141,16 @@ async def check_prev_links(docs_url: str, process: SimpleProcess, mdb: MongoDBDa
         class_type=Link,
     )
     await mdb.delete_entity(base_link)
+    await finish_process(process, mdb)
 
 
-async def set_parent_flags(docs_url: str, process: SimpleProcess, mdb: MongoDBDatabase):
+async def set_parent_flags(docs_url: str, process: Process, mdb: MongoDBDatabase):
     num_links = await mdb.count_entries(Link, {"base_url": docs_url})
+    await set_end(process, num_links, mdb)
     counter = 0
 
     async for link in mdb.stream_entries(Link, {"base_url": docs_url}):
-        if counter % 5 == 0:
-            await update_status_process(f"Progress bar: {counter}/{num_links}", process, mdb)
+        await increment_process(process, mdb, counter)
         counter += 1
 
         first_link_obj = await mdb.get_entry_from_col_value(
@@ -155,3 +161,5 @@ async def set_parent_flags(docs_url: str, process: SimpleProcess, mdb: MongoDBDa
         if first_link_obj is not None:
             link.is_parent = True
             await mdb.update_entry(link)
+
+    await finish_process(process, mdb)

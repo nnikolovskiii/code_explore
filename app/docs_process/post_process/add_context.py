@@ -141,10 +141,12 @@ async def _create_context_process(
     if count > 0:
         return await create_process(
             url=docs_url,
+            curr=0,
             end=count,
             process_type="context",
             mdb=mdb,
-            type="docs"
+            type="docs",
+            group="post",
         )
 
     return None
