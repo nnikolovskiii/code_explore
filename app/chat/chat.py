@@ -41,11 +41,10 @@ async def retrieve_relevant_chunks(
     qdb = await get_qdrant_db()
     docs_objs = await mdb.get_entries(DocsUrl, doc_filter={"active": True})
     docs_urls = [docs_obj.url for docs_obj in docs_objs]
-    print(docs_urls)
     return await qdb.retrieve_similar_entries(
         value=question,
         class_type=DocsChunk,
-        score_threshold=0.0,
+        score_threshold=0.3,
         top_k=10,
         filter={("active", "value"): True, ("base_url", "any") : docs_urls}
     )

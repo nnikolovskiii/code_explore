@@ -19,8 +19,8 @@ class EmbeddChunk(MongoEntry):
 async def embedd_chunks(
         docs_url: str,
 ):
-    mdb = MongoDBDatabase(url="mkpatka.duckdns.org")
-    qdb = QdrantDatabase(url="localhost")
+    mdb = MongoDBDatabase()
+    qdb = QdrantDatabase()
     existing_ids = {obj.my_id for obj in await mdb.get_entries(Metadata)}
 
     chunks = await mdb.get_entries(
@@ -39,14 +39,17 @@ async def embedd_chunks(
                 column_value=chunk.id,
                 class_type=DocsContext
             )
-
-            content = chunk.content.split(context.context)[1]
+            if context:
+                content = chunk.content.split(context.context)[1]
+            else:
+                content = chunk.content
             content = content.strip()
 
             await qdb.embedd_and_upsert_record(
                 value=content,
                 entity=chunk,
-                metadata={"active": False}
+                metadata={"active": False},
+                collection_name="Test"
             )
 
             await mdb.add_entry(Metadata(my_id=chunk.id))
@@ -80,5 +83,4 @@ async def save_ids_from_qdrant():
     for id in ids:
         await mdb.add_entry(Metadata(my_id=id))
 
-# asyncio.run(save_ids_from_qdrant())
 asyncio.run(process_code_files("https://docs.expo.dev"))

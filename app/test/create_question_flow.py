@@ -5,7 +5,7 @@ import re
 from app.databases.mongo_db import MongoEntry, MongoDBDatabase
 from app.databases.singletons import get_mongo_db
 from app.docs_process.post_process.add_context import _get_surrounding_context
-from app.models.docs import DocsChunk, Link
+from app.models.docs import DocsChunk, Link, DocsContext
 from app.test.check_quality import check_quality
 from app.test.create_question import create_question
 
@@ -29,16 +29,30 @@ def _print(
     print("***********************************")
 
 
-async def create_questions_flow():
+async def create_questions_flow(with_context: bool = True):
     mdb = await get_mongo_db()
     docs_chunks = await mdb.get_entries(DocsChunk, {"processed": True, "base_url": "https://docs.expo.dev"})
     visited = {question.chunk_id for question in await mdb.get_entries(Question, {"base_url": "https://docs.expo.dev"})}
     counter = 0
 
     while True:
-        if counter == 49:
+        if counter == 100:
             break
         chunk: DocsChunk = random.choice(docs_chunks)
+
+        if not with_context:
+            context = await mdb.get_entry_from_col_value(
+                column_name="chunk_id",
+                column_value=chunk.id,
+                class_type=DocsContext
+            )
+            if context:
+                content = chunk.content.split(context.context)[1]
+            else:
+                content = chunk.content
+
+            chunk.content = content
+
         pattern = r"^v\d+\.\d+\.\d+$"
 
         match = re.match(pattern, chunk.link)
@@ -69,18 +83,4 @@ async def create_questions_flow():
         except Exception as e:
             print(e)
 
-
-async def check_existing():
-    mdb_localhost = MongoDBDatabase(url="localhost")
-    links = [question.link for question in await mdb_localhost.get_entries(Question, {"base_url": "https://docs.expo.dev"})]
-    print(len(links))
-    mdb_server = MongoDBDatabase(url="mkpatka.duckdns.org")
-    existing_links = {link_obj.link for link_obj in await mdb_server.get_entries(Link, {"processed": True, "base_url": "https://docs.expo.dev"})}
-    print(len(existing_links))
-    counter = 0
-    for link in links:
-        if link not in existing_links:
-            counter +=1
-    print(counter)
-
-# asyncio.run(check_existing())
+# asyncio.run(create_questions_flow())

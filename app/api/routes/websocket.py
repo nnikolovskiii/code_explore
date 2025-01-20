@@ -39,13 +39,13 @@ async def websocket_endpoint(websocket: WebSocket, mdb: mdb_dep):
                     if i < len(assistant_messages):
                         history.append({"role": "user", "content": assistant_messages[i]})
 
-            vanilla_flag = await mdb.get_entry_from_col_value(
+            docs_flag = await mdb.get_entry_from_col_value(
                 column_name="name",
-                column_value="vanilla",
+                column_value="docs",
                 class_type=Flag
             )
 
-            if not vanilla_flag.active:
+            if docs_flag.active:
                 async for response_chunk in chat(
                     message=message,
                     system_message="You are an expert coding assistant.",
