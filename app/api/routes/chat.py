@@ -9,6 +9,7 @@ from app.chat.create_chat_name import create_chat_name
 from app.chat.models import Message, Chat
 import logging
 
+from app.chat.service import get_messages_from_chat
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
 from app.databases.singletons import get_mongo_db
 from app.models.chat import ChatApi, get_fernet, ChatModel, get_active_chat_model
@@ -72,15 +73,10 @@ async def get_chats(mdb: db_dep):
 @router.get("/get_chat_messages/{chat_id}", status_code=HTTPStatus.CREATED)
 async def get_chat_messages(chat_id: str, mdb: db_dep):
     try:
-        user_messages = await mdb.get_entries(Message, doc_filter={"chat_id": chat_id, "role": "user"})
-        assistant_messages = await mdb.get_entries(Message, doc_filter={"chat_id": chat_id, "role": "assistant"})
-
-        user_messages = sorted(user_messages, key=lambda x: x.order)
-        assistant_messages = sorted(assistant_messages, key=lambda x: x.order)
+        return await get_messages_from_chat(chat_id=chat_id, mdb=mdb)
     except Exception as e:
         logging.error(f"Failed to add entry: {e}")
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to add entry")
-    return {"user_messages": user_messages, "assistant_messages": assistant_messages}
 
 
 @router.post("/add_chat/", status_code=HTTPStatus.CREATED)

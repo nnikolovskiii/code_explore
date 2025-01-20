@@ -15,3 +15,4 @@ class Message(MongoEntry):
 class Chat(MongoEntry):
     title: str
     timestamp: datetime = datetime.now()
+    num_messages: Optional[int] = 0

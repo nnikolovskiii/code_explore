@@ -1,10 +1,14 @@
 from typing import Annotated
 import asyncio
+
+from bson import ObjectId
 from fastapi import WebSocket
 
 from app.chat.chat import chat
 import logging
 
+from app.chat.models import Message, Chat
+from app.chat.service import get_messages_from_chat, get_history_from_chat, create_chat
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
 from app.llms.generic_stream_chat import generic_stram_chat
@@ -24,26 +28,27 @@ async def websocket_endpoint(websocket: WebSocket, mdb: mdb_dep):
         try:
             data = await websocket.receive_text()
             data = json.loads(data)
-            message, user_messages, assistant_messages = data
+            message, chat_id = data
 
-            history = []
-            history_flag = await mdb.get_entry_from_col_value(
-                column_name="name",
-                column_value="history",
+            history = await get_history_from_chat(chat_id=chat_id, mdb=mdb)
+            if chat_id is None:
+                chat_id = await create_chat(user_message=message, mdb=mdb)
+
+            chat_obj = await mdb.get_entry(ObjectId(chat_id), Chat)
+
+            await mdb.add_entry(Message(
+                role="user",
+                content=message,
+                order=chat_obj.num_messages,
+                chat_id=chat_id
+            ))
+
+            docs_flag = await mdb.get_entry_from_col_values(
+                columns={"name": "docs"},
                 class_type=Flag
             )
 
-            if history_flag.active:
-                for i in range(len(user_messages)):
-                    history.append({"role": "user", "content": user_messages[i]})
-                    if i < len(assistant_messages):
-                        history.append({"role": "user", "content": assistant_messages[i]})
-
-            docs_flag = await mdb.get_entry_from_col_value(
-                column_name="name",
-                column_value="docs",
-                class_type=Flag
-            )
+            response = ""
 
             if docs_flag.active:
                 async for response_chunk in chat(
@@ -52,6 +57,7 @@ async def websocket_endpoint(websocket: WebSocket, mdb: mdb_dep):
                     history=history,
                     mdb=mdb
                 ):
+                    response += response_chunk
                     await websocket.send_text(response_chunk)
                     await asyncio.sleep(0.0001)
             else:
@@ -61,11 +67,22 @@ async def websocket_endpoint(websocket: WebSocket, mdb: mdb_dep):
                         history=history,
                         mdb=mdb
                 ):
+                    response += response_chunk
                     await websocket.send_text(response_chunk)
                     await asyncio.sleep(0.0001)
 
             await websocket.send_text("<ASTOR>")
             await asyncio.sleep(0.1)
+
+            await mdb.add_entry(Message(
+                role="assistant",
+                content=response,
+                order=chat_obj.num_messages,
+                chat_id=chat_id
+            ))
+
+            chat_obj.num_messages += 1
+            await mdb.update_entry(chat_obj)
 
         except Exception as e:
             print(f"Error: {e}")
