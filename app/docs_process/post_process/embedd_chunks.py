@@ -49,13 +49,15 @@ async def embedd_chunks(
             await qdb.embedd_and_upsert_record(
                 value=chunk.content,
                 entity=chunk,
-                metadata={"active": False}
+                metadata={"active": True}
             )
+
+            chunk.processed = True
+            await mdb.update_entry(chunk)
+
         except Exception as e:
             logging.error(e)
 
-        chunk.processed = True
-        await mdb.update_entry(chunk)
         count += 1
 
     await finish_process(process, mdb)
