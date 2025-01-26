@@ -4,7 +4,7 @@ from typing import List, Dict
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
 from app.models.chat import get_active_chat_model, get_chat_api
-from app.stream_llms.hf_inference_stream import chat_with_hf_inference_stream
+from app.stream_llms.inference_client_stream import chat_with_inference_stream
 from app.stream_llms.openai_stream import openai_stream
 
 
@@ -15,13 +15,17 @@ async def generic_stram_chat(
         system_message: str = "You are a helpful AI assistant.",
 ):
     chat_model = await get_active_chat_model(mdb)
+    print(chat_model)
     chat_api = await get_chat_api(type=chat_model.chat_api_type, mdb=mdb)
 
     if chat_model.chat_api_type == "openai":
         async for data in openai_stream(message, system_message, chat_model,chat_api, history):
             yield data
     elif chat_model.chat_api_type == "hugging_face":
-        async for data in chat_with_hf_inference_stream(message, system_message, chat_model,chat_api, history):
+        async for data in chat_with_inference_stream(message, system_message, chat_model,chat_api, history):
+            yield data
+    elif chat_model.chat_api_type == "deepseek":
+        async for data in openai_stream(message, system_message, chat_model,chat_api, history):
             yield data
 
 async def _test_generic_stram_chat():

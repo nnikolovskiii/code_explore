@@ -140,7 +140,6 @@ async def update_chat(chat_id: str, messages_dto: MessagesDto, mdb: db_dep):
 async def add_chat_api(chat_api: ChatApi, mdb: db_dep):
     try:
         chat_api.api_key = get_fernet().encrypt(chat_api.api_key.encode())
-
         chat_api_obj = await mdb.get_entry_from_col_value(
             column_name="type",
             column_value=chat_api.type,
@@ -151,6 +150,7 @@ async def add_chat_api(chat_api: ChatApi, mdb: db_dep):
             await mdb.add_entry(chat_api)
         else:
             chat_api_obj.api_key = chat_api.api_key
+            chat_api_obj.base_url = chat_api.base_url
             await mdb.update_entry(chat_api_obj)
     except Exception as e:
         logging.error(f"Failed to add entry: {e}")
@@ -198,9 +198,10 @@ async def get_chat_api_and_models(type: str, mdb: db_dep):
         if chat_api is None:
             raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Chat API does not exist")
 
+        chat_api.api_key = get_fernet().decrypt(chat_api.api_key).decode()
         return {
             "models": await mdb.get_entries(ChatModel, doc_filter={"chat_api_type": type}),
-            "api": ChatApi(id=chat_api.id,type=type, api_key=get_fernet().decrypt(chat_api.api_key).decode())
+            "api": chat_api
         }
     except Exception as e:
         logging.error(f"Failed to add entry: {e}")

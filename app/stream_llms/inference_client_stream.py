@@ -6,7 +6,7 @@ from app.llms.utils import _get_messages_template
 from app.models.chat import ChatModel, ChatApi
 
 
-async def chat_with_hf_inference_stream(
+async def chat_with_inference_stream(
         message: str,
         system_message: str,
         chat_model: ChatModel,

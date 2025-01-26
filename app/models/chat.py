@@ -25,6 +25,7 @@ def get_fernet():
 class ChatApi(MongoEntry):
     type: str
     api_key: str
+    base_url: Optional[str] = None
 
 
 class ChatModel(MongoEntry):
@@ -47,5 +48,6 @@ async def get_chat_api(type:str, mdb: MongoDBDatabase) -> ChatApi:
         column_value=type,
         class_type=ChatApi,
     )
-
-    return ChatApi(id=chat_api.id,type=type, api_key=get_fernet().decrypt(chat_api.api_key).decode())
+    encrypted_bytes = chat_api.api_key.encode('utf-8')  # Critical step: String → Bytes
+    chat_api.api_key = get_fernet().decrypt(encrypted_bytes).decode()
+    return chat_api

@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from openai import OpenAI
 
@@ -13,8 +13,11 @@ async def openai_stream(
         chat_api: ChatApi,
         history: List[Dict[str, str]] = None,
 ):
-    client = OpenAI(api_key=chat_api.api_key)
+    client = OpenAI(api_key=chat_api.api_key) if chat_api.base_url is None else OpenAI(api_key=chat_api.api_key, base_url=chat_api.base_url)
+    print(chat_api)
+    print(client.base_url)
     messages = _get_messages_template(message, system_message, history)
+    print(messages)
 
     stream = client.chat.completions.create(
         model=chat_model.name,
