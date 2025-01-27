@@ -2,7 +2,7 @@ from typing import List, Dict
 
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_qdrant_db
-from app.stream_llms.generic_stream_chat import generic_stram_chat
+from app.llms.stream_chat.generic_stream_chat import generic_stram_chat
 from app.models.docs import DocsChunk, DocsUrl
 
 

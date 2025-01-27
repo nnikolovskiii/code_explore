@@ -1,5 +1,4 @@
-from app.llms.generic_chat import ChatModel
-from app.llms.json_response import get_json_response
+from app.llms.chat.json_response import get_json_response
 
 
 def check_quality_template(

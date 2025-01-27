@@ -1,15 +1,12 @@
-import asyncio
 import uuid
 from typing import List, Dict, Any, Optional, TypeVar, Callable, Awaitable, Tuple
 
-from aiohttp import payload_type
 from qdrant_client.async_qdrant_client import AsyncQdrantClient
 from qdrant_client import models
 from typing import Type as TypingType
 
-from app.llms.openai_embedding import embedd_content_with_model
+from app.llms.embedders.openai_embedder import embedd_content_with_model
 from pydantic import BaseModel
-from qdrant_client.conversions import common_types as types
 from dotenv import load_dotenv
 import os
 from qdrant_client.http.models import Record

@@ -4,7 +4,7 @@ from bson import ObjectId
 from tqdm import tqdm
 
 from app.databases.mongo_db import MongoDBDatabase
-from app.llms.generic_chat import generic_chat
+from app.llms.chat.generic_chat import generic_chat
 from app.models.code import CodeChunk, CodeContent, CodeContext
 
 

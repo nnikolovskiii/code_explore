@@ -3,11 +3,11 @@ from enum import Enum
 
 from dotenv import load_dotenv
 
-from app.llms.custom_chat import chat_with_custom_api
-from app.llms.hf_inference_chat import chat_with_hf_inference
-from app.llms.nim_chat import chat_with_nim
-from app.llms.ollama_chat import chat_with_ollama
-from app.llms.openai_chat import chat_with_openai
+from app.llms.chat.custom_chat import chat_with_custom_api
+from app.llms.chat.hf_inference_chat import chat_with_hf_inference
+from app.llms.chat.nim_chat import chat_with_nim
+from app.llms.chat.ollama_chat import chat_with_ollama
+from app.llms.chat.openai_chat import chat_with_openai
 
 
 class ChatModel(Enum):

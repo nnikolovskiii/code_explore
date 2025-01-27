@@ -5,7 +5,7 @@ from bson import ObjectId
 from fastapi import HTTPException, APIRouter, Depends
 from pydantic import BaseModel
 
-from app.chat.create_chat_name import create_chat_name
+from app.chat.create_chat_name import ChatNamePipeline
 from app.chat.models import Message, Chat
 import logging
 
@@ -64,9 +64,14 @@ async def get_chats(mdb: db_dep):
             if category:
                 categorized_chats[category].append(chat)
 
+        # Sort the chats within each category from latest to oldest
+        for category in categorized_chats:
+            categorized_chats[category].sort(key=lambda x: x.timestamp, reverse=True)
+
     except Exception as e:
         logging.error(f"Failed to add entry: {e}")
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to add entry")
+
     return categorized_chats
 
 
@@ -86,8 +91,9 @@ async def add_chat(messages_dto: MessagesDto, mdb: db_dep):
 
         if len(user_messages) == 0:
             raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="There are no user messages")
-        title = await create_chat_name(message=user_messages[0][0])
-        chat_obj = Chat(title=title)
+        chat_name_pipeline = ChatNamePipeline()
+        response = await chat_name_pipeline.execute_flow_dict(message=user_messages[0])
+        chat_obj = Chat(title=response["title"])
         chat_id = await mdb.add_entry(chat_obj)
         for i, tup in enumerate(user_messages):
             await mdb.add_entry(Message(

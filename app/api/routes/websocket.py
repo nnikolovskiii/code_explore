@@ -11,7 +11,7 @@ from app.chat.models import Message, Chat
 from app.chat.service import get_history_from_chat, create_chat
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
-from app.stream_llms.generic_stream_chat import generic_stram_chat
+from app.llms.stream_chat.generic_stream_chat import generic_stram_chat
 from app.models.Flag import Flag
 import json
 

@@ -1,4 +1,6 @@
-from app.chat.create_chat_name import create_chat_name
+from datetime import datetime
+
+from app.chat.create_chat_name import ChatNamePipeline
 from app.chat.models import Message, Chat
 from app.databases.mongo_db import MongoDBDatabase
 from app.models.Flag import Flag
@@ -44,7 +46,9 @@ async def create_chat(
         user_message: str,
         mdb: MongoDBDatabase
 ) -> str:
-    title = await create_chat_name(message=user_message)
-    chat_obj = Chat(title=title)
+    chat_name_pipeline = ChatNamePipeline()
+    response = await chat_name_pipeline.execute_flow_dict(message=user_message)
+    chat_obj = Chat(title=response["title"])
+    chat_obj.timestamp=datetime.now()
     return await mdb.add_entry(chat_obj)
 

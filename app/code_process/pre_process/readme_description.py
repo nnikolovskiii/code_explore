@@ -2,7 +2,7 @@ import asyncio
 import os
 
 from app.code_process.pre_process.file_utils import _read_file
-from app.llms.generic_chat import generic_chat
+from app.llms.chat.generic_chat import generic_chat
 
 
 def create_readme_description_template(

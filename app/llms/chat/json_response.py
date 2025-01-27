@@ -2,7 +2,7 @@ from typing import Any, Dict
 import logging
 from dotenv import load_dotenv
 
-from app.llms.generic_chat import generic_chat, ChatModel
+from app.llms.chat.generic_chat import generic_chat
 from app.utils.json_extraction import trim_and_load_json
 
 

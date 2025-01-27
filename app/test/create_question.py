@@ -1,4 +1,4 @@
-from app.llms.json_response import get_json_response
+from app.llms.chat.json_response import get_json_response
 
 
 def create_question_template(

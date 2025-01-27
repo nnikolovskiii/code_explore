@@ -1,10 +1,9 @@
 import logging
-from typing import List
 
 from bson import ObjectId
 
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
-from app.llms.generic_chat import generic_chat
+from app.llms.chat.generic_chat import generic_chat
 from app.models.docs import DocsContent, DocsChunk, DocsContext, Link
 from app.models.process import create_process, increment_process, finish_process, Process
 
