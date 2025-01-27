@@ -8,7 +8,7 @@ from app.chat.chat import chat
 import logging
 
 from app.chat.models import Message, Chat
-from app.chat.service import get_history_from_chat, create_chat
+from app.container import container
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
 from app.llms.stream_chat.generic_stream_chat import generic_stram_chat
@@ -23,6 +23,8 @@ mdb_dep = Annotated[MongoDBDatabase, Depends(get_mongo_db)]
 
 @router.websocket("/")
 async def websocket_endpoint(websocket: WebSocket, mdb: mdb_dep):
+    chat_service = container.chat_service()
+
     await websocket.accept()
     while True:
         try:
@@ -30,9 +32,9 @@ async def websocket_endpoint(websocket: WebSocket, mdb: mdb_dep):
             data = json.loads(data)
             message, chat_id = data
 
-            history = await get_history_from_chat(chat_id=chat_id, mdb=mdb)
+            history = await chat_service.get_history_from_chat(chat_id=chat_id)
             if chat_id is None:
-                chat_id = await create_chat(user_message=message, mdb=mdb)
+                chat_id = await chat_service.create_chat(user_message=message)
 
             chat_obj = await mdb.get_entry(ObjectId(chat_id), Chat)
 

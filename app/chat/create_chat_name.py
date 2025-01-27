@@ -11,11 +11,3 @@ class ChatNamePipeline(Pipeline):
 
         Return in json format: {{"title": "..."}}
         """
-
-
-async def test():
-    pipeline = ChatNamePipeline()
-    response = await pipeline.execute_flow_dict(message="What do you think of the Milkiway Galaxy?")
-    print(response)
-
-asyncio.run(test())

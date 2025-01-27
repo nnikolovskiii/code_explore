@@ -1,25 +1,20 @@
 from http import HTTPStatus
-from typing import Annotated, Tuple, List
+from typing import Tuple, List
 
-from bson import ObjectId
-from fastapi import HTTPException, APIRouter, Depends
+from fastapi import HTTPException, APIRouter
 from pydantic import BaseModel
 
-from app.chat.create_chat_name import ChatNamePipeline
-from app.chat.models import Message, Chat
+from app.chat.models import Chat
 import logging
 
-from app.chat.service import get_messages_from_chat
-from app.databases.mongo_db import MongoDBDatabase, MongoEntry
-from app.databases.singletons import get_mongo_db
+from app.container import container
+from app.databases.mongo_db import MongoEntry
 from app.models.chat import ChatApi, get_fernet, ChatModel, get_active_chat_model
 from datetime import datetime, timedelta
 
 logging.basicConfig(level=logging.DEBUG)
 
 router = APIRouter()
-
-db_dep = Annotated[MongoDBDatabase, Depends(get_mongo_db)]
 
 
 class ChatDto(BaseModel):
@@ -33,7 +28,9 @@ class MessagesDto(BaseModel):
 
 
 @router.get("/get_chats/", status_code=HTTPStatus.CREATED)
-async def get_chats(mdb: db_dep):
+async def get_chats():
+    mdb = container.mdb()
+
     def categorize_chat(chat, now):
         chat_datetime = chat.timestamp
 
@@ -76,74 +73,19 @@ async def get_chats(mdb: db_dep):
 
 
 @router.get("/get_chat_messages/{chat_id}", status_code=HTTPStatus.CREATED)
-async def get_chat_messages(chat_id: str, mdb: db_dep):
+async def get_chat_messages(chat_id: str):
+    chat_service = container.chat_service()
     try:
-        return await get_messages_from_chat(chat_id=chat_id, mdb=mdb)
+        return await chat_service.get_messages_from_chat(chat_id=chat_id)
     except Exception as e:
         logging.error(f"Failed to add entry: {e}")
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to add entry")
-
-
-@router.post("/add_chat/", status_code=HTTPStatus.CREATED)
-async def add_chat(messages_dto: MessagesDto, mdb: db_dep):
-    try:
-        user_messages = messages_dto.user_messages
-
-        if len(user_messages) == 0:
-            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="There are no user messages")
-        chat_name_pipeline = ChatNamePipeline()
-        response = await chat_name_pipeline.execute_flow_dict(message=user_messages[0])
-        chat_obj = Chat(title=response["title"])
-        chat_id = await mdb.add_entry(chat_obj)
-        for i, tup in enumerate(user_messages):
-            await mdb.add_entry(Message(
-                role="user",
-                content=tup[0],
-                order=tup[1],
-                chat_id=chat_id
-            ))
-
-        for i, tup in enumerate(messages_dto.assistant_messages):
-            await mdb.add_entry(Message(
-                role="assistant",
-                content=tup[0],
-                order=tup[1],
-                chat_id=chat_id
-            ))
-
-    except Exception as e:
-        logging.error(f"Failed to add entry: {e}")
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to add entry")
-    return True
-
-
-@router.post("/update_chat/{chat_id}", status_code=HTTPStatus.CREATED)
-async def update_chat(chat_id: str, messages_dto: MessagesDto, mdb: db_dep):
-    try:
-        for i, tup in enumerate(messages_dto.user_messages):
-            await mdb.add_entry(Message(
-                role="user",
-                content=tup[0],
-                order=tup[1],
-                chat_id=chat_id
-            ))
-
-        for i, tup in enumerate(messages_dto.assistant_messages):
-            await mdb.add_entry(Message(
-                role="assistant",
-                content=tup[0],
-                order=tup[1],
-                chat_id=chat_id
-            ))
-
-    except Exception as e:
-        logging.error(f"Failed to add entry: {e}")
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to add entry")
-    return True
 
 
 @router.post("/add_chat_api/", status_code=HTTPStatus.CREATED)
-async def add_chat_api(chat_api: ChatApi, mdb: db_dep):
+async def add_chat_api(chat_api: ChatApi):
+    mdb = container.mdb()
+
     try:
         chat_api.api_key = get_fernet().encrypt(chat_api.api_key.encode())
         chat_api_obj = await mdb.get_entry_from_col_value(
@@ -163,8 +105,11 @@ async def add_chat_api(chat_api: ChatApi, mdb: db_dep):
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to add entry")
     return True
 
+
 @router.post("/add_chat_model/", status_code=HTTPStatus.CREATED)
-async def add_chat_model(chat_model: ChatModel, mdb: db_dep):
+async def add_chat_model(chat_model: ChatModel):
+    mdb = container.mdb()
+
     try:
         chat_model_obj = await mdb.get_entry_from_col_value(
             column_name="name",
@@ -193,7 +138,9 @@ async def add_chat_model(chat_model: ChatModel, mdb: db_dep):
 
 
 @router.get("/get_chat_api_and_models/", status_code=HTTPStatus.CREATED)
-async def get_chat_api_and_models(type: str, mdb: db_dep):
+async def get_chat_api_and_models(type: str):
+    mdb = container.mdb()
+
     try:
         chat_api = await mdb.get_entry_from_col_value(
             column_name="type",
@@ -217,8 +164,12 @@ async def get_chat_api_and_models(type: str, mdb: db_dep):
 class ActiveModelDto(MongoEntry):
     model: str
     type: str
+
+
 @router.post("/set_active_model/", status_code=HTTPStatus.CREATED)
-async def set_active_model(active_model_dto:ActiveModelDto, mdb: db_dep):
+async def set_active_model(active_model_dto: ActiveModelDto):
+    mdb = container.mdb()
+
     try:
         current_active = await mdb.get_entry_from_col_value(
             column_name="active",
@@ -245,8 +196,11 @@ async def set_active_model(active_model_dto:ActiveModelDto, mdb: db_dep):
         logging.error(f"Failed to add entry: {e}")
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to add entry")
 
+
 @router.get("/get_active_model/", status_code=HTTPStatus.CREATED)
-async def get_active_model(mdb: db_dep):
+async def get_active_model():
+    mdb = container.mdb()
+
     try:
         chat_model = await get_active_chat_model(mdb)
         return chat_model

@@ -6,49 +6,51 @@ from app.databases.mongo_db import MongoDBDatabase
 from app.models.Flag import Flag
 
 
-async def get_messages_from_chat(
-        chat_id: str,
-        mdb: MongoDBDatabase
-):
-    user_messages = await mdb.get_entries(Message, doc_filter={"chat_id": chat_id, "role": "user"})
-    assistant_messages = await mdb.get_entries(Message, doc_filter={"chat_id": chat_id, "role": "assistant"})
+class ChatService:
+    def __init__(self, mdb: MongoDBDatabase):
+        self.mdb = mdb
 
-    user_messages = sorted(user_messages, key=lambda x: x.order)
-    assistant_messages = sorted(assistant_messages, key=lambda x: x.order)
+    async def get_messages_from_chat(
+            self,
+            chat_id: str,
+    ):
+        user_messages = await self.mdb.get_entries(Message, doc_filter={"chat_id": chat_id, "role": "user"})
+        assistant_messages = await self.mdb.get_entries(Message, doc_filter={"chat_id": chat_id, "role": "assistant"})
 
-    return {"user_messages": user_messages, "assistant_messages": assistant_messages}
+        user_messages = sorted(user_messages, key=lambda x: x.order)
+        assistant_messages = sorted(assistant_messages, key=lambda x: x.order)
 
+        return {"user_messages": user_messages, "assistant_messages": assistant_messages}
 
-async def get_history_from_chat(
-        chat_id: str,
-        mdb: MongoDBDatabase
-):
-    history = []
-    history_flag = await mdb.get_entry_from_col_value(
-        column_name="name",
-        column_value="history",
-        class_type=Flag
-    )
+    async def get_history_from_chat(
+            self,
+            chat_id: str,
+    ):
+        history = []
+        history_flag = await self.mdb.get_entry_from_col_value(
+            column_name="name",
+            column_value="history",
+            class_type=Flag
+        )
 
-    if history_flag.active and chat_id is not None:
-        messages = await get_messages_from_chat(chat_id=chat_id, mdb=mdb)
-        user_messages = messages["user_messages"]
-        assistant_messages = messages["assistant_messages"]
+        if history_flag.active and chat_id is not None:
+            messages = await self.get_messages_from_chat(chat_id=chat_id)
+            user_messages = messages["user_messages"]
+            assistant_messages = messages["assistant_messages"]
 
-        for i in range(len(user_messages)):
-            history.append({"role": "user", "content": user_messages[i].content})
-            if i < len(assistant_messages):
-                history.append({"role": "user", "content": assistant_messages[i].content})
+            for i in range(len(user_messages)):
+                history.append({"role": "user", "content": user_messages[i].content})
+                if i < len(assistant_messages):
+                    history.append({"role": "user", "content": assistant_messages[i].content})
 
-    return history
+        return history
 
-async def create_chat(
-        user_message: str,
-        mdb: MongoDBDatabase
-) -> str:
-    chat_name_pipeline = ChatNamePipeline()
-    response = await chat_name_pipeline.execute_flow_dict(message=user_message)
-    chat_obj = Chat(title=response["title"])
-    chat_obj.timestamp=datetime.now()
-    return await mdb.add_entry(chat_obj)
-
+    async def create_chat(
+            self,
+            user_message: str,
+    ) -> str:
+        chat_name_pipeline = ChatNamePipeline()
+        response = await chat_name_pipeline.execute_flow_dict(message=user_message)
+        chat_obj = Chat(title=response["title"])
+        chat_obj.timestamp = datetime.now()
+        return await self.mdb.add_entry(chat_obj)
