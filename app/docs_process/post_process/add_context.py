@@ -3,8 +3,8 @@ import logging
 from bson import ObjectId
 
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
-from app.llms.chat.generic_chat import generic_chat
-from app.models.docs import DocsContent, DocsChunk, DocsContext, Link
+from app.docs_process.post_process.chunk_context_pipeline import ChunkContextPipeline
+from app.models.docs import DocsChunk, Link, DocsContent, DocsContext
 from app.models.process import create_process, increment_process, finish_process, Process
 
 
@@ -14,20 +14,21 @@ class AddContextChunk(MongoEntry):
     url: str
 
 
-def add_context_template(
-        context: str,
-        chunk_text: str
+async def add_context(
+        chunk: DocsChunk,
+        context_len: int,
+        mdb: MongoDBDatabase
 ):
-    return f"""<document> 
-{context}
-</document> 
-Here is the chunk we want to situate within the whole document which is part of a code documentation.
-<chunk> 
-{chunk_text} 
-</chunk> 
-Give a short succinct context to situate this chunk within the overall document for the purposes of improving search retrieval of the chunk. Make it a couple of sentences long.
-"""
-
+    if chunk.doc_len > 1:
+        context = await _get_surrounding_context(chunk=chunk, context_len=context_len, mdb=mdb)
+        pipeline = ChunkContextPipeline()
+        response = await pipeline.execute(context=context, chunk_text=chunk.content)
+        await mdb.add_entry(DocsContext(
+            base_url=chunk.base_url,
+            link=chunk.link,
+            chunk_id=chunk.id,
+            context=response,
+        ))
 
 async def _get_surrounding_context(
         chunk: DocsChunk,
@@ -53,25 +54,6 @@ async def _get_surrounding_context(
     before_context = "..." + content[tmp2:start_index]
 
     return before_context + chunk.content + after_context
-
-
-async def add_context(
-        chunk: DocsChunk,
-        context_len: int,
-        mdb: MongoDBDatabase
-):
-    if chunk.doc_len > 1:
-        context = await _get_surrounding_context(chunk=chunk, context_len=context_len, mdb=mdb)
-        template = add_context_template(context=context, chunk_text=chunk.content)
-        response = await generic_chat(template,
-                                      system_message="You are an AI assistant designed in providing contextual summaries and categorize documents.")
-        await mdb.add_entry(DocsContext(
-            base_url=chunk.base_url,
-            link=chunk.link,
-            chunk_id=chunk.id,
-            context=response,
-        ))
-
 
 async def add_context_links(
         mdb: MongoDBDatabase,

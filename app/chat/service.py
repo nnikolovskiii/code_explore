@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from app.chat.create_chat_name import ChatNamePipeline
+from app.chat.chat_title_pipeline import ChatTitlePipeline
 from app.chat.models import Message, Chat
 from app.databases.mongo_db import MongoDBDatabase
 from app.models.Flag import Flag
@@ -49,8 +49,8 @@ class ChatService:
             self,
             user_message: str,
     ) -> str:
-        chat_name_pipeline = ChatNamePipeline()
-        response = await chat_name_pipeline.execute_flow_dict(message=user_message)
+        chat_name_pipeline = ChatTitlePipeline()
+        response = await chat_name_pipeline.execute(message=user_message)
         chat_obj = Chat(title=response["title"])
         chat_obj.timestamp = datetime.now()
         return await self.mdb.add_entry(chat_obj)

@@ -1,7 +1,14 @@
+import os
+
 import cohere
 import asyncio
 
-co = cohere.AsyncClientV2()
+from dotenv import load_dotenv
+
+load_dotenv()
+cohere_api_key = os.getenv("COHERE_API_KEY")
+
+co = cohere.AsyncClient(api_key=cohere_api_key)
 
 async def main():
     response = await co.rerank(

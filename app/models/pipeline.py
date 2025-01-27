@@ -1,49 +1,61 @@
-from abc import ABC
-from typing import Dict, Any, TypeVar, List
+from abc import ABC, abstractmethod
+from typing import Any, TypeVar, Tuple, Optional
 
 from pydantic.v1 import BaseModel
 
+from app.databases.mongo_db import MongoDBDatabase
 from app.llms.chat.generic_chat import generic_chat
 from app.llms.chat.json_response import get_json_response
 from typing import Type
 
 T = TypeVar('T', bound=BaseModel)
-class Pipeline(BaseModel, ABC):
+
+
+class Pipeline(ABC):
+    mdb: Optional[MongoDBDatabase] = None
+
+    def __init__(self, mdb: Optional[MongoDBDatabase]=None):
+        self.mdb = mdb
+
+    @property
+    @abstractmethod
+    def response_type(self) -> str:
+        """Return the response format type: 'str', 'dict', or 'model'."""
+        pass
+
+    @abstractmethod
     def template(self, **kwargs) -> str:
         """Define the template that is sent to the AI model"""
         pass
 
-    async def execute_flow_dict(self, **kwargs) -> Dict[str, Any]:
+    async def execute(self, **kwargs) -> Any:
         template = self.template(**kwargs)
-        response = await get_json_response(
-            template,
-            system_message="You are an AI assistant designed to provide contextual summaries of code."
-        )
-        return response
+        print(template)
+        print("**************************************************************************")
+        # Route based on response_type
+        if self.response_type == "str":
+            processor = self._str_processor
+        elif self.response_type == "dict":
+            processor = self._dict_processor
+        elif self.response_type == "model":
+            processor = self._model_processor
+        else:
+            raise ValueError(f"Unsupported response type: {self.response_type}")
 
-    async def execute_flow_str(self, *args)->str:
-        template = self.template(*args)
-        response = await generic_chat(
-            template,
-            system_message="You are an AI assistant designed to provide contextual summaries of code."
-        )
-        return response
+        raw_response, processed_response = await processor(template, **kwargs)
+        return processed_response
 
-    async def execute_flow_model(self, class_type: Type[T], *args) -> List[T] | T:
-        """Execute flow for templates that return in JSON format attributes of a model or list of models."""
-        template = self.template(*args)
-        response = await get_json_response(
-            template,
-            system_message="You are an AI assistant designed to provide contextual summaries of code."
-        )
+    @staticmethod
+    async def _str_processor(template: str, **_) -> Tuple[str, str]:
+        raw = await generic_chat(template, system_message="...")
+        return raw, raw
 
-        keys = list(response.keys())
-        if len(keys) == 1:
-            data = response[keys[0]]
-            if isinstance(data, list):
-                li = []
-                for item in data:
-                    li.append(class_type.model_validate(item))
-                return li
+    @staticmethod
+    async def _dict_processor(template: str, **_) -> Tuple[dict, dict]:
+        raw = await get_json_response(template, system_message="...")
+        return raw, raw
 
-        return class_type.model_validate(response)
+    @staticmethod
+    async def _model_processor(template: str, class_type: Type[T], **_) -> Tuple[dict, T]:
+        raw = await get_json_response(template, system_message="...")
+        return raw, class_type.model_validate(raw)
