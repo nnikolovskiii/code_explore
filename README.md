@@ -6,12 +6,17 @@
 <div align="center">
 ✨ Code Explore ✨
 </div>
+</br>
+🔹 Chat with code documentations using multiple generative AI models (gpt-4o, deepseek, qwen...).
 
-</br>
-🔹Chat with code documentations using multiple generative AI models (gpt-4o, deepseek, qwen...).
-</br>
-</br>
+### 🛠️ Setup 
+1. Make sure you have [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) installed
+2. Run the following command:
+```bash
+docker-compose up --build
+```
 
+### 📸 Screenshots
 
 ![image](https://github.com/user-attachments/assets/78bd2841-c50a-49e5-b621-c6822a7b598b)
 ![image](https://github.com/user-attachments/assets/8395200a-bad3-47e6-8756-2c0032650771)
