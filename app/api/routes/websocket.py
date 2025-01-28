@@ -11,7 +11,7 @@ from app.chat.models import Message, Chat
 from app.container import container
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
-from app.llms.stream_chat.generic_stream_chat import generic_stram_chat
+from app.llms.stream_chat.generic_stream_chat import generic_stream_chat
 from app.models.Flag import Flag
 import json
 
@@ -63,7 +63,7 @@ async def websocket_endpoint(websocket: WebSocket, mdb: mdb_dep):
                     await websocket.send_text(response_chunk)
                     await asyncio.sleep(0.0001)
             else:
-                async for response_chunk in generic_stram_chat(
+                async for response_chunk in generic_stream_chat(
                         message=message,
                         system_message="You are an expert coding assistant.",
                         history=history,

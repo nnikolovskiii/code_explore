@@ -7,7 +7,7 @@ from app.llms.stream_chat.inference_client_stream import chat_with_inference_str
 from app.llms.stream_chat.openai_stream import openai_stream
 
 
-async def generic_stram_chat(
+async def generic_stream_chat(
         message: str,
         mdb: MongoDBDatabase = None,
         history: List[Dict[str, str]] = None,
@@ -29,7 +29,7 @@ async def generic_stram_chat(
 
 async def _test_generic_stram_chat():
     mdb = await get_mongo_db()
-    async for response_chunk in generic_stram_chat(
+    async for response_chunk in generic_stream_chat(
             message="Hello what are you primarily designed to do. Answer in one sentence?" ,
             system_message="You are an expert coding assistant.",
             mdb=mdb,

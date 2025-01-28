@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, TypeVar, Tuple, Optional
+from typing import Any, TypeVar, Tuple, Optional, List, Dict, AsyncGenerator
 
 from pydantic.v1 import BaseModel
 
@@ -8,19 +8,21 @@ from app.llms.chat.generic_chat import generic_chat
 from app.llms.chat.json_response import get_json_response
 from typing import Type
 
+from app.llms.stream_chat.generic_stream_chat import generic_stream_chat
+
 T = TypeVar('T', bound=BaseModel)
 
 
 class Pipeline(ABC):
     mdb: Optional[MongoDBDatabase] = None
 
-    def __init__(self, mdb: Optional[MongoDBDatabase]=None):
+    def __init__(self, mdb: Optional[MongoDBDatabase] = None):
         self.mdb = mdb
 
     @property
     @abstractmethod
     def response_type(self) -> str:
-        """Return the response format type: 'str', 'dict', or 'model'."""
+        """Return the response format type: 'str', 'dict', 'model', or 'stream'."""
         pass
 
     @abstractmethod
@@ -30,9 +32,7 @@ class Pipeline(ABC):
 
     async def execute(self, **kwargs) -> Any:
         template = self.template(**kwargs)
-        print(template)
-        print("**************************************************************************")
-        # Route based on response_type
+
         if self.response_type == "str":
             processor = self._str_processor
         elif self.response_type == "dict":
@@ -44,6 +44,23 @@ class Pipeline(ABC):
 
         raw_response, processed_response = await processor(template, **kwargs)
         return processed_response
+
+    async def stream_execute(
+            self,
+            system_message: str = "...",
+            history: List[Dict[str, str]] = None,
+            **kwargs
+    ) -> AsyncGenerator[Any, None]:
+        template = self.template(**kwargs)
+
+        if self.response_type == "stream":
+            async for data in generic_stream_chat(
+                    message=template,
+                    system_message=system_message,
+                    history=history,
+                    mdb=self.mdb,
+            ):
+                yield data
 
     @staticmethod
     async def _str_processor(template: str, **_) -> Tuple[str, str]:

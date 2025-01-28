@@ -3,7 +3,7 @@ import logging
 from bson import ObjectId
 
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
-from app.docs_process.post_process.chunk_context_pipeline import ChunkContextPipeline
+from app.api.pipelines.chunk_context_pipeline import ChunkContextPipeline
 from app.models.docs import DocsChunk, Link, DocsContent, DocsContext
 from app.models.process import create_process, increment_process, finish_process, Process
 

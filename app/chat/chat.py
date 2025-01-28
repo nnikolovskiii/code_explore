@@ -1,37 +1,11 @@
 from typing import List, Dict
 
+from app.api.pipelines.generate_retrieval_docs_pipeline import GenerateRetrievalDocsPipeline
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_qdrant_db
-from app.llms.stream_chat.generic_stream_chat import generic_stram_chat
+from app.llms.stream_chat.generic_stream_chat import generic_stream_chat
 from app.models.docs import DocsChunk, DocsUrl
 
-
-def _get_chunk_tags(
-        chunk: List[str]
-) -> str:
-    chunk_tags = ""
-    for i, chunk in enumerate(chunk):
-        chunk_tags += f"""<chunk>\n{chunk}\n</chunk>"""
-        if i < len(chunk) - 1:
-            chunk_tags += "\n"
-    return chunk_tags
-
-
-def chat_template(
-        chunks: List[str],
-        question
-):
-    return f"""Below you are given a question and relevant chunks which are retrieved from a vector database.
-Here are the chunks which are most similar to the question.
-{_get_chunk_tags(chunks)}
-Here is the question from the user:
-<question>
-{question}
-</question>
-
-Your job is to provide a correct and detailed answer to the question.
-Important: Use your own knowledge to determine which information from the chunks is relevant when answering the question.
-"""
 
 
 async def retrieve_relevant_chunks(
@@ -59,12 +33,12 @@ async def chat(
     relevant_chunks = await retrieve_relevant_chunks(message, mdb=mdb)
     references = {(relevant_chunk.link, relevant_chunk.link.split(relevant_chunk.base_url)[1]) for relevant_chunk in relevant_chunks}
     chunk_contents = [chunk.content for chunk in relevant_chunks]
-    template = chat_template(chunk_contents, message)
-    async for data in generic_stram_chat(
-            message=template,
+    pipeline = GenerateRetrievalDocsPipeline(mdb=mdb)
+    async for data in pipeline.stream_execute(
+            instruction=message,
+            chunks=chunk_contents,
             system_message=system_message,
             history=history,
-            mdb=mdb
     ):
         yield data
 
