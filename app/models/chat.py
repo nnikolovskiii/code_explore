@@ -2,7 +2,6 @@ import os
 from typing import Optional
 
 from cryptography.fernet import Fernet
-from pydantic import field_validator
 
 from app.databases.mongo_db import MongoEntry, MongoDBDatabase
 from dotenv import load_dotenv
@@ -32,22 +31,3 @@ class ChatModel(MongoEntry):
     name: str
     chat_api_type: str
     active: Optional[bool] = False
-
-async def get_active_chat_model(mdb:MongoDBDatabase) -> ChatModel:
-    chat_model = await mdb.get_entry_from_col_value(
-        column_name="active",
-        column_value=True,
-        class_type=ChatModel,
-    )
-
-    return chat_model
-
-async def get_chat_api(type:str, mdb: MongoDBDatabase) -> ChatApi:
-    chat_api = await mdb.get_entry_from_col_value(
-        column_name="type",
-        column_value=type,
-        class_type=ChatApi,
-    )
-    encrypted_bytes = chat_api.api_key.encode('utf-8')  # Critical step: String → Bytes
-    chat_api.api_key = get_fernet().decrypt(encrypted_bytes).decode()
-    return chat_api

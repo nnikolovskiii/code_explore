@@ -1,8 +1,8 @@
 from typing import List, Dict
 
+from app.container import container
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
-from app.models.chat import get_active_chat_model, get_chat_api
 from app.llms.stream_chat.inference_client_stream import chat_with_inference_stream
 from app.llms.stream_chat.openai_stream import openai_stream
 
@@ -13,9 +13,10 @@ async def generic_stream_chat(
         history: List[Dict[str, str]] = None,
         system_message: str = "You are a helpful AI assistant.",
 ):
-    chat_model = await get_active_chat_model(mdb)
+    chat_service = container.chat_service()
+    chat_model = await chat_service.get_active_chat_model()
     print(chat_model)
-    chat_api = await get_chat_api(type=chat_model.chat_api_type, mdb=mdb)
+    chat_api = await chat_service.get_chat_api(type=chat_model.chat_api_type)
 
     if chat_model.chat_api_type == "openai":
         async for data in openai_stream(message, system_message, chat_model,chat_api, history):

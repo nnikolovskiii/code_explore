@@ -2,7 +2,7 @@ import asyncio
 import os
 
 from app.code_process.pre_process.file_utils import _read_file
-from app.llms.chat.generic_chat import generic_chat
+from app.llms.models import ChatLLM
 
 
 def create_readme_description_template(
@@ -21,7 +21,8 @@ async def create_readme_description(
         readme_file: str
 )->str:
     template = create_readme_description_template(readme_file)
-    response = await generic_chat(template)
+    chat_llm = await ChatLLM.create(model_name="Qwen/Qwen2.5-Coder-32B-Instruct")
+    response = await chat_llm.generate(template)
     print(response)
 
     return response

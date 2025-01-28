@@ -3,9 +3,10 @@ import logging
 from bson import ObjectId
 
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
-from app.api.pipelines.chunk_context_pipeline import ChunkContextPipeline
+from app.llms.chat.hf_inference_chat import InferenceClientChat
 from app.models.docs import DocsChunk, Link, DocsContent, DocsContext
 from app.models.process import create_process, increment_process, finish_process, Process
+from app.pipelines.chunk_context_pipeline import ChunkContextPipeline
 
 
 class AddContextChunk(MongoEntry):
@@ -21,7 +22,7 @@ async def add_context(
 ):
     if chunk.doc_len > 1:
         context = await _get_surrounding_context(chunk=chunk, context_len=context_len, mdb=mdb)
-        pipeline = ChunkContextPipeline()
+        pipeline = ChunkContextPipeline(chat_llm=InferenceClientChat("Qwen/Qwen2.5-Coder-32B-Instruct"))
         response = await pipeline.execute(context=context, chunk_text=chunk.content)
         await mdb.add_entry(DocsContext(
             base_url=chunk.base_url,

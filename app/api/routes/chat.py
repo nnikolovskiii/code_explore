@@ -9,7 +9,7 @@ import logging
 
 from app.container import container
 from app.databases.mongo_db import MongoEntry
-from app.models.chat import ChatApi, get_fernet, ChatModel, get_active_chat_model
+from app.models.chat import ChatApi, get_fernet, ChatModel
 from datetime import datetime, timedelta
 
 logging.basicConfig(level=logging.DEBUG)
@@ -200,9 +200,10 @@ async def set_active_model(active_model_dto: ActiveModelDto):
 @router.get("/get_active_model/", status_code=HTTPStatus.CREATED)
 async def get_active_model():
     mdb = container.mdb()
+    chat_service = container.chat_service()
 
     try:
-        chat_model = await get_active_chat_model(mdb)
+        chat_model = await chat_service.get_active_chat_model()
         return chat_model
     except Exception as e:
         logging.error(f"Failed to add entry: {e}")

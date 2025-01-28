@@ -1,9 +1,9 @@
 from typing import List
 
-from app.models.pipeline import Pipeline
+from app.models.pipeline import StreamPipeline
 
 
-class GenerateRetrievalDocsPipeline(Pipeline):
+class GenerateRetrievalDocsPipeline(StreamPipeline):
     @property
     def response_type(self) -> str:
         return "stream"

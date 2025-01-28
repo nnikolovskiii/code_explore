@@ -1,9 +1,8 @@
 from typing import List, Dict
 
-from app.api.pipelines.generate_retrieval_docs_pipeline import GenerateRetrievalDocsPipeline
+from app.pipelines.generate_retrieval_docs_pipeline import GenerateRetrievalDocsPipeline
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_qdrant_db
-from app.llms.stream_chat.generic_stream_chat import generic_stream_chat
 from app.models.docs import DocsChunk, DocsUrl
 
 
@@ -34,7 +33,7 @@ async def chat(
     references = {(relevant_chunk.link, relevant_chunk.link.split(relevant_chunk.base_url)[1]) for relevant_chunk in relevant_chunks}
     chunk_contents = [chunk.content for chunk in relevant_chunks]
     pipeline = GenerateRetrievalDocsPipeline(mdb=mdb)
-    async for data in pipeline.stream_execute(
+    async for data in pipeline.execute(
             instruction=message,
             chunks=chunk_contents,
             system_message=system_message,

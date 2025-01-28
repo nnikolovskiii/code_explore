@@ -1,14 +1,15 @@
+import logging
 from abc import ABC, abstractmethod
 from typing import Any, TypeVar, Tuple, Optional, List, Dict, AsyncGenerator
 
 from pydantic.v1 import BaseModel
 
 from app.databases.mongo_db import MongoDBDatabase
-from app.llms.chat.generic_chat import generic_chat
-from app.llms.chat.json_response import get_json_response
 from typing import Type
 
+from app.llms.models import ChatLLM
 from app.llms.stream_chat.generic_stream_chat import generic_stream_chat
+from app.utils.json_extraction import trim_and_load_json
 
 T = TypeVar('T', bound=BaseModel)
 
@@ -19,15 +20,27 @@ class Pipeline(ABC):
     def __init__(self, mdb: Optional[MongoDBDatabase] = None):
         self.mdb = mdb
 
+    @abstractmethod
+    def template(self, **kwargs) -> str:
+        """Define the template that is sent to the AI model"""
+        pass
+
+    @abstractmethod
+    async def execute(self, **kwargs) -> Any:
+        pass
+
+
+class ChatPipeline(Pipeline):
+    chat_llm: ChatLLM
+
+    def __init__(self, chat_llm: ChatLLM, mdb: Optional[MongoDBDatabase] = None):
+        super().__init__(mdb)
+        self.chat_llm = chat_llm
+
     @property
     @abstractmethod
     def response_type(self) -> str:
         """Return the response format type: 'str', 'dict', 'model', or 'stream'."""
-        pass
-
-    @abstractmethod
-    def template(self, **kwargs) -> str:
-        """Define the template that is sent to the AI model"""
         pass
 
     async def execute(self, **kwargs) -> Any:
@@ -45,7 +58,38 @@ class Pipeline(ABC):
         raw_response, processed_response = await processor(template, **kwargs)
         return processed_response
 
-    async def stream_execute(
+    async def _str_processor(self, template: str, **_) -> Tuple[str, str]:
+        raw = await self.chat_llm.generate(template, system_message="...")
+        return raw, raw
+
+    async def _dict_processor(self, template: str, **_) -> Tuple[str, dict]:
+        json_data = {}
+        raw = ""
+        is_finished = False
+        tries = 0
+        while not is_finished:
+            if tries > 0:
+                logging.warning(f"Chat not returning as expected. it: {tries}")
+
+            if tries > 3:
+                if tries > 0:
+                    logging.warning("Chat not returning as expected.")
+                raise Exception()
+
+            raw = await self.chat_llm.generate(template, system_message="...")
+
+            is_finished, json_data = await trim_and_load_json(input_string=raw)
+            tries += 1
+        return raw, json_data
+
+    async def _model_processor(self, template: str, class_type: Type[T], **_) -> Tuple[str, T]:
+        raw, json_data = await self._dict_processor(template, system_message="...")
+        return raw, class_type.model_validate(json_data)
+
+
+
+class StreamPipeline(Pipeline, ABC):
+    async def execute(
             self,
             system_message: str = "...",
             history: List[Dict[str, str]] = None,
@@ -53,26 +97,10 @@ class Pipeline(ABC):
     ) -> AsyncGenerator[Any, None]:
         template = self.template(**kwargs)
 
-        if self.response_type == "stream":
-            async for data in generic_stream_chat(
-                    message=template,
-                    system_message=system_message,
-                    history=history,
-                    mdb=self.mdb,
-            ):
-                yield data
-
-    @staticmethod
-    async def _str_processor(template: str, **_) -> Tuple[str, str]:
-        raw = await generic_chat(template, system_message="...")
-        return raw, raw
-
-    @staticmethod
-    async def _dict_processor(template: str, **_) -> Tuple[dict, dict]:
-        raw = await get_json_response(template, system_message="...")
-        return raw, raw
-
-    @staticmethod
-    async def _model_processor(template: str, class_type: Type[T], **_) -> Tuple[dict, T]:
-        raw = await get_json_response(template, system_message="...")
-        return raw, class_type.model_validate(raw)
+        async for data in generic_stream_chat(
+                message=template,
+                system_message=system_message,
+                history=history,
+                mdb=self.mdb,
+        ):
+            yield data

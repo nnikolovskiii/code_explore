@@ -1,9 +1,7 @@
-import asyncio
-
-from app.models.pipeline import Pipeline
+from app.models.pipeline import ChatPipeline
 
 
-class ChatTitlePipeline(Pipeline):
+class ChatTitlePipeline(ChatPipeline):
     @property
     def response_type(self) -> str:
         return "dict"
@@ -13,9 +11,3 @@ class ChatTitlePipeline(Pipeline):
 Question: {message}
 
 Return in json format: {{"title": "..."}}"""
-async def test():
-    pipeline = ChatTitlePipeline()
-    lol = await pipeline.execute(message="Talking about storms")
-    print(lol)
-
-# asyncio.run(test())

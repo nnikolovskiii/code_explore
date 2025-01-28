@@ -1,7 +1,7 @@
-from app.models.pipeline import Pipeline
+from app.models.pipeline import ChatPipeline
 
 
-class ChunkContextPipeline(Pipeline):
+class ChunkContextPipeline(ChatPipeline):
     @property
     def response_type(self) -> str:
         return "str"

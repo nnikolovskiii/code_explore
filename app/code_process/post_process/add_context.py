@@ -4,7 +4,7 @@ from bson import ObjectId
 from tqdm import tqdm
 
 from app.databases.mongo_db import MongoDBDatabase
-from app.llms.chat.generic_chat import generic_chat
+from app.llms.chat.hf_inference_chat import InferenceClientChat
 from app.models.code import CodeChunk, CodeContent, CodeContext
 
 
@@ -56,7 +56,9 @@ async def add_context(
 
     context = await _get_surrounding_context(chunk, content, context_len)
     template = add_context_template(context=context, chunk_text=chunk.content)
-    response = await generic_chat(template,
+
+    chat_llm = await InferenceClientChat.create(model_name="Qwen/Qwen2.5-Coder-32B-Instruct")
+    response = await chat_llm.generate(template,
                                   system_message="You are an AI assistant designed in providing contextual summaries of code.")
     code_context=CodeContext(
         url=chunk.url,

@@ -1,6 +1,6 @@
-from datetime import datetime
+from typing import Tuple
 
-from app.api.pipelines.chat_title_pipeline import ChatTitlePipeline
+from app.models.chat import ChatApi, ChatModel, get_fernet
 from app.chat.models import Message, Chat
 from app.databases.mongo_db import MongoDBDatabase
 from app.models.Flag import Flag
@@ -45,14 +45,35 @@ class ChatService:
 
         return history
 
-    async def create_chat(
-            self,
-            user_message: str,
-    ) -> str:
-        chat_name_pipeline = ChatTitlePipeline()
-        response = await chat_name_pipeline.execute(message=user_message)
+    async def get_active_chat_model(self) -> ChatModel:
+        chat_model = await self.mdb.get_entry_from_col_value(
+            column_name="active",
+            column_value=True,
+            class_type=ChatModel,
+        )
 
-        chat_obj = Chat(title=response["title"])
-        chat_obj.timestamp = datetime.now()
+        return chat_model
 
-        return await self.mdb.add_entry(chat_obj)
+    async def get_chat_api(self, type: str) -> ChatApi:
+        chat_api = await self.mdb.get_entry_from_col_value(
+            column_name="type",
+            column_value=type,
+            class_type=ChatApi,
+        )
+        encrypted_bytes = chat_api.api_key.encode('utf-8')
+        chat_api.api_key = get_fernet().decrypt(encrypted_bytes).decode()
+        return chat_api
+
+
+    async def get_model_and_api(self, model_name) -> Tuple[ChatApi, ChatModel]:
+        chat_model = await self.mdb.get_entry_from_col_values(
+            columns={"name": model_name},
+            class_type=ChatModel,
+        )
+
+        chat_api = await self.get_chat_api(chat_model.chat_api_type)
+
+        if chat_model is None or chat_api is None:
+            raise Exception(f"Model {model_name} not found")
+
+        return chat_api, chat_model
