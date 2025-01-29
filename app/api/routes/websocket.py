@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Annotated
 import asyncio
 
@@ -12,12 +11,9 @@ from app.chat.models import Message, Chat
 from app.container import container
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
-from app.llms.chat.inference_client_chat import InferenceClientChat
-from app.llms.stream_chat.generic_stream_chat import generic_stream_chat
 from app.models.Flag import Flag
 import json
 
-from app.pipelines.chat_title_pipeline import ChatTitlePipeline
 
 logging.basicConfig(level=logging.DEBUG)
 from fastapi import APIRouter, Depends
@@ -39,7 +35,7 @@ async def websocket_endpoint(websocket: WebSocket, mdb: mdb_dep):
 
             history = await chat_service.get_history_from_chat(chat_id=chat_id)
             if chat_id is None:
-                chat_id = await _create_chat(user_message=message, mdb=mdb)
+                chat_id = await chat_service.create_chat(user_message=message)
 
             chat_obj = await mdb.get_entry(ObjectId(chat_id), Chat)
 
@@ -55,6 +51,8 @@ async def websocket_endpoint(websocket: WebSocket, mdb: mdb_dep):
                 class_type=Flag
             )
 
+            active_model = await chat_service.get_active_stream_chat()
+
             response = ""
 
             if docs_flag.active:
@@ -62,17 +60,17 @@ async def websocket_endpoint(websocket: WebSocket, mdb: mdb_dep):
                         message=message,
                         system_message="You are an expert coding assistant.",
                         history=history,
+                        active_model=active_model,
                         mdb=mdb
                 ):
                     response += response_chunk
                     await websocket.send_text(response_chunk)
                     await asyncio.sleep(0.0001)
             else:
-                async for response_chunk in generic_stream_chat(
+                async for response_chunk in active_model.generate(
                         message=message,
                         system_message="You are an expert coding assistant.",
                         history=history,
-                        mdb=mdb
                 ):
                     response += response_chunk
                     await websocket.send_text(response_chunk)
@@ -95,16 +93,3 @@ async def websocket_endpoint(websocket: WebSocket, mdb: mdb_dep):
             print(f"Error: {e}")
             break
 
-
-async def _create_chat(
-        mdb: MongoDBDatabase,
-        user_message: str,
-) -> str:
-    chat_llm = await InferenceClientChat.create(model_name="Qwen/Qwen2.5-Coder-32B-Instruct")
-    chat_name_pipeline = ChatTitlePipeline(chat_llm=chat_llm)
-    response = await chat_name_pipeline.execute(message=user_message)
-
-    chat_obj = Chat(title=response["title"])
-    chat_obj.timestamp = datetime.now()
-
-    return await mdb.add_entry(chat_obj)

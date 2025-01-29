@@ -6,7 +6,7 @@
 <div align="center">
 ✨ Code Explore ✨
 </div>
-</br>
+
 🔹 Chat with code documentations using multiple generative AI models (gpt-4o, deepseek, qwen...).
 
 ### 🛠️ Setup 

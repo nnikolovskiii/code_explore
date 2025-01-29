@@ -3,6 +3,7 @@ from typing import List
 from bson import ObjectId
 from tqdm import tqdm
 
+from app.container import container
 from app.databases.mongo_db import MongoDBDatabase
 from app.llms.chat.inference_client_chat import InferenceClientChat
 from app.models.code import CodeChunk, CodeContent, CodeContext
@@ -52,12 +53,13 @@ async def add_context(
         context_len: int,
         mdb: MongoDBDatabase
 )->CodeContext:
+    chat_service = container.chat_service()
     content = await mdb.get_entry(ObjectId(chunk.content_id), CodeContent)
 
     context = await _get_surrounding_context(chunk, content, context_len)
     template = add_context_template(context=context, chunk_text=chunk.content)
 
-    chat_llm = await InferenceClientChat.create(model_name="Qwen/Qwen2.5-Coder-32B-Instruct")
+    chat_llm = await chat_service.create_model(model_name="Qwen/Qwen2.5-Coder-32B-Instruct")
     response = await chat_llm.generate(template,
                                   system_message="You are an AI assistant designed in providing contextual summaries of code.")
     code_context=CodeContext(

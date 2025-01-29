@@ -7,8 +7,7 @@ from pydantic.v1 import BaseModel
 from app.databases.mongo_db import MongoDBDatabase
 from typing import Type
 
-from app.llms.models import ChatLLM
-from app.llms.stream_chat.generic_stream_chat import generic_stream_chat
+from app.llms.models import ChatLLM, StreamChatLLM
 from app.utils.json_extraction import trim_and_load_json
 
 T = TypeVar('T', bound=BaseModel)
@@ -89,6 +88,12 @@ class ChatPipeline(Pipeline):
 
 
 class StreamPipeline(Pipeline, ABC):
+    stream_chat_llm: StreamChatLLM
+
+    def __init__(self, stream_chat_llm: StreamChatLLM, mdb: Optional[MongoDBDatabase] = None):
+        super().__init__(mdb)
+        self.stream_chat_llm = stream_chat_llm
+
     async def execute(
             self,
             system_message: str = "...",
@@ -97,10 +102,9 @@ class StreamPipeline(Pipeline, ABC):
     ) -> AsyncGenerator[Any, None]:
         template = self.template(**kwargs)
 
-        async for data in generic_stream_chat(
+        async for data in self.stream_chat_llm.generate(
                 message=template,
                 system_message=system_message,
                 history=history,
-                mdb=self.mdb,
         ):
             yield data

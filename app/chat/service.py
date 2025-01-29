@@ -1,14 +1,21 @@
-from typing import Tuple
+from datetime import datetime
 
+from app.llms.llm_factory import LLMFactory
+from app.llms.models import ChatLLM, StreamChatLLM
 from app.models.chat import ChatApi, ChatModelConfig, get_fernet
 from app.chat.models import Message, Chat
 from app.databases.mongo_db import MongoDBDatabase
 from app.models.Flag import Flag
+from app.pipelines.chat_title_pipeline import ChatTitlePipeline
 
 
 class ChatService:
-    def __init__(self, mdb: MongoDBDatabase):
+    mdb: MongoDBDatabase
+    llm_factory: LLMFactory
+
+    def __init__(self, mdb: MongoDBDatabase, llm_factory: LLMFactory) -> None:
         self.mdb = mdb
+        self.llm_factory = llm_factory
 
     async def get_messages_from_chat(
             self,
@@ -65,7 +72,7 @@ class ChatService:
         return chat_api
 
 
-    async def get_model_and_api(self, model_name) -> Tuple[ChatApi, ChatModelConfig]:
+    async def create_model(self, model_name) -> ChatLLM:
         chat_model = await self.mdb.get_entry_from_col_values(
             columns={"name": model_name},
             class_type=ChatModelConfig,
@@ -76,4 +83,22 @@ class ChatService:
         if chat_model is None or chat_api is None:
             raise Exception(f"Model {model_name} not found")
 
-        return chat_api, chat_model
+        return self.llm_factory.crete_chat_llm(chat_api=chat_api, chat_model_config=chat_model)
+
+    async def create_chat(
+            self,
+            user_message: str,
+    ) -> str:
+        chat_llm = await self.create_model(model_name="Qwen/Qwen2.5-Coder-32B-Instruct")
+        chat_name_pipeline = ChatTitlePipeline(chat_llm=chat_llm)
+        response = await chat_name_pipeline.execute(message=user_message)
+
+        chat_obj = Chat(title=response["title"])
+        chat_obj.timestamp = datetime.now()
+
+        return await self.mdb.add_entry(chat_obj)
+
+    async def get_active_stream_chat(self)->StreamChatLLM:
+        chat_model = await self.get_active_chat_model()
+        chat_api = await self.get_chat_api(type=chat_model.chat_api_type)
+        return self.llm_factory.create_stream_llm(chat_api=chat_api, chat_model_config=chat_model)

@@ -1,32 +1,29 @@
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, AsyncGenerator, Any
 
 from openai import AsyncOpenAI
 
+from app.llms.models import StreamChatLLM
 from app.llms.utils import _get_messages_template
-from app.models.chat import ChatModelConfig, ChatApi
 
+class OpenAIStreamChat(StreamChatLLM):
 
-async def openai_stream(
-        message: str,
-        system_message: str,
-        chat_model: ChatModelConfig,
-        chat_api: ChatApi,
-        history: List[Dict[str, str]] = None,
-):
-    client_params = {"api_key": chat_api.api_key}
-    if chat_api.base_url is not None:
-        client_params["base_url"] = chat_api.base_url
+    async def generate(self, message: str, system_message: Optional[str] = "You are helpful AI assistant.",
+                       history: List[Dict[str, str]] = None):
+        client_params = {"api_key": self.chat_api.api_key}
+        if self.chat_api.base_url is not None:
+            client_params["base_url"] = self.chat_api.base_url
 
-    client = AsyncOpenAI(**client_params)
+        client = AsyncOpenAI(**client_params)
 
-    messages = _get_messages_template(message, system_message, history)
+        messages = _get_messages_template(message, system_message, history)
 
-    stream = await client.chat.completions.create(
-        model=chat_model.name,
-        messages=messages,
-        stream=True,
-    )
+        stream = await client.chat.completions.create(
+            model=self.chat_model_config.name,
+            messages=messages,
+            stream=True,
+        )
 
-    async for chunk in stream:
-        if chunk.choices[0].delta.content is not None:
-            yield chunk.choices[0].delta.content
+        async for chunk in stream:
+            if chunk.choices[0].delta.content is not None:
+                yield chunk.choices[0].delta.content
+

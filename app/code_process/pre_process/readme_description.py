@@ -2,6 +2,7 @@ import asyncio
 import os
 
 from app.code_process.pre_process.file_utils import _read_file
+from app.container import container
 from app.llms.models import ChatLLM
 
 
@@ -20,8 +21,9 @@ Make the description short. Do not write any code.
 async def create_readme_description(
         readme_file: str
 )->str:
+    chat_service = container.chat_service()
     template = create_readme_description_template(readme_file)
-    chat_llm = await ChatLLM.create(model_name="Qwen/Qwen2.5-Coder-32B-Instruct")
+    chat_llm = await chat_service.create_model(model_name="Qwen/Qwen2.5-Coder-32B-Instruct")
     response = await chat_llm.generate(template)
     print(response)
 

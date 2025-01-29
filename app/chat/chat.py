@@ -1,5 +1,6 @@
 from typing import List, Dict
 
+from app.llms.models import StreamChatLLM
 from app.pipelines.generate_retrieval_docs_pipeline import GenerateRetrievalDocsPipeline
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_qdrant_db
@@ -27,12 +28,13 @@ async def chat(
         message: str,
         system_message: str,
         mdb: MongoDBDatabase,
+        active_model: StreamChatLLM,
         history: List[Dict[str, str]] = None,
 ):
     relevant_chunks = await retrieve_relevant_chunks(message, mdb=mdb)
     references = {(relevant_chunk.link, relevant_chunk.link.split(relevant_chunk.base_url)[1]) for relevant_chunk in relevant_chunks}
     chunk_contents = [chunk.content for chunk in relevant_chunks]
-    pipeline = GenerateRetrievalDocsPipeline(mdb=mdb)
+    pipeline = GenerateRetrievalDocsPipeline(stream_chat_llm=active_model, mdb=mdb)
     async for data in pipeline.execute(
             instruction=message,
             chunks=chunk_contents,
