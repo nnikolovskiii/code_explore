@@ -27,7 +27,7 @@ origins = [
     "http://localhost:4200",
     "http://mkpatka.duckdns.org:8080",
     "http://mkpatka.duckdns.org:5000",
-
+    "https://nnikolovskiii.ngrok.dev"
 ]
 
 app.add_middleware(

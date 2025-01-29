@@ -4,7 +4,7 @@ from bson import ObjectId
 from tqdm import tqdm
 
 from app.databases.mongo_db import MongoDBDatabase
-from app.llms.chat.hf_inference_chat import InferenceClientChat
+from app.llms.chat.inference_client_chat import InferenceClientChat
 from app.models.code import CodeChunk, CodeContent, CodeContext
 
 

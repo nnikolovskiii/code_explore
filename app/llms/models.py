@@ -3,7 +3,7 @@ from typing import List, Dict, Optional
 
 from app.chat.service import ChatService
 from app.container import container
-from app.models.chat import ChatModel, ChatApi
+from app.models.chat import ChatModelConfig, ChatApi
 
 
 class BaseLLM(ABC):
@@ -13,11 +13,11 @@ class BaseLLM(ABC):
 
 class ChatLLM(BaseLLM):
     chat_service: ChatService = container.chat_service()
-    chat_model: ChatModel
+    chat_model_config: ChatModelConfig
     chat_api: ChatApi
 
-    def __init__(self, chat_model: ChatModel, chat_api: ChatApi):
-        self.chat_model = chat_model
+    def __init__(self, chat_model: ChatModelConfig, chat_api: ChatApi):
+        self.chat_model_config = chat_model
         self.chat_api = chat_api
 
     @classmethod

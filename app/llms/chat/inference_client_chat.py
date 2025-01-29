@@ -28,7 +28,7 @@ class InferenceClientChat(ChatLLM):
             "messages": messages,
         }
 
-        url = f"https://api-inference.huggingface.co/models/{self.chat_model.name}/v1/chat/completions"
+        url = f"https://api-inference.huggingface.co/models/{self.chat_model_config.name}/v1/chat/completions"
 
         async with aiohttp.ClientSession(headers=headers) as session:
             async with session.post(url, json=payload) as response:

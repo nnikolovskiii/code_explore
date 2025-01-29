@@ -4,13 +4,13 @@ import asyncio
 from huggingface_hub import InferenceClient
 
 from app.llms.utils import _get_messages_template
-from app.models.chat import ChatModel, ChatApi
+from app.models.chat import ChatModelConfig, ChatApi
 
 
 async def chat_with_inference_stream(
         message: str,
         system_message: str,
-        chat_model: ChatModel,
+        chat_model: ChatModelConfig,
         chat_api: ChatApi,
         history: List[Dict[str, str]] = None,
 ):

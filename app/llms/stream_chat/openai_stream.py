@@ -3,13 +3,13 @@ from typing import List, Dict, Optional
 from openai import AsyncOpenAI
 
 from app.llms.utils import _get_messages_template
-from app.models.chat import ChatModel, ChatApi
+from app.models.chat import ChatModelConfig, ChatApi
 
 
 async def openai_stream(
         message: str,
         system_message: str,
-        chat_model: ChatModel,
+        chat_model: ChatModelConfig,
         chat_api: ChatApi,
         history: List[Dict[str, str]] = None,
 ):

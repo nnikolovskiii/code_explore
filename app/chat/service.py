@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from app.models.chat import ChatApi, ChatModel, get_fernet
+from app.models.chat import ChatApi, ChatModelConfig, get_fernet
 from app.chat.models import Message, Chat
 from app.databases.mongo_db import MongoDBDatabase
 from app.models.Flag import Flag
@@ -45,11 +45,11 @@ class ChatService:
 
         return history
 
-    async def get_active_chat_model(self) -> ChatModel:
+    async def get_active_chat_model(self) -> ChatModelConfig:
         chat_model = await self.mdb.get_entry_from_col_value(
             column_name="active",
             column_value=True,
-            class_type=ChatModel,
+            class_type=ChatModelConfig,
         )
 
         return chat_model
@@ -65,10 +65,10 @@ class ChatService:
         return chat_api
 
 
-    async def get_model_and_api(self, model_name) -> Tuple[ChatApi, ChatModel]:
+    async def get_model_and_api(self, model_name) -> Tuple[ChatApi, ChatModelConfig]:
         chat_model = await self.mdb.get_entry_from_col_values(
             columns={"name": model_name},
-            class_type=ChatModel,
+            class_type=ChatModelConfig,
         )
 
         chat_api = await self.get_chat_api(chat_model.chat_api_type)

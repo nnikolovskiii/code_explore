@@ -9,7 +9,7 @@ import logging
 
 from app.container import container
 from app.databases.mongo_db import MongoEntry
-from app.models.chat import ChatApi, get_fernet, ChatModel
+from app.models.chat import ChatApi, get_fernet, ChatModelConfig
 from datetime import datetime, timedelta
 
 logging.basicConfig(level=logging.DEBUG)
@@ -107,14 +107,14 @@ async def add_chat_api(chat_api: ChatApi):
 
 
 @router.post("/add_chat_model/", status_code=HTTPStatus.CREATED)
-async def add_chat_model(chat_model: ChatModel):
+async def add_chat_model(chat_model: ChatModelConfig):
     mdb = container.mdb()
 
     try:
         chat_model_obj = await mdb.get_entry_from_col_value(
             column_name="name",
             column_value=chat_model.name,
-            class_type=ChatModel
+            class_type=ChatModelConfig
         )
 
         chat_api = await mdb.get_entry_from_col_value(
@@ -149,11 +149,11 @@ async def get_chat_api_and_models(type: str):
         )
 
         if chat_api is None:
-            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Chat API does not exist")
+            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="    Chat API does not exist")
 
         chat_api.api_key = get_fernet().decrypt(chat_api.api_key).decode()
         return {
-            "models": await mdb.get_entries(ChatModel, doc_filter={"chat_api_type": type}),
+            "models": await mdb.get_entries(ChatModelConfig, doc_filter={"chat_api_type": type}),
             "api": chat_api
         }
     except Exception as e:
@@ -174,7 +174,7 @@ async def set_active_model(active_model_dto: ActiveModelDto):
         current_active = await mdb.get_entry_from_col_value(
             column_name="active",
             column_value=True,
-            class_type=ChatModel
+            class_type=ChatModelConfig
         )
 
         if current_active is not None:
@@ -184,7 +184,7 @@ async def set_active_model(active_model_dto: ActiveModelDto):
         new_active = await mdb.get_entry_from_col_value(
             column_name="name",
             column_value=active_model_dto.model,
-            class_type=ChatModel
+            class_type=ChatModelConfig
         )
 
         if new_active is None:

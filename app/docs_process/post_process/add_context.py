@@ -3,7 +3,7 @@ import logging
 from bson import ObjectId
 
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
-from app.llms.chat.hf_inference_chat import InferenceClientChat
+from app.llms.chat.inference_client_chat import InferenceClientChat
 from app.models.docs import DocsChunk, Link, DocsContent, DocsContext
 from app.models.process import create_process, increment_process, finish_process, Process
 from app.pipelines.chunk_context_pipeline import ChunkContextPipeline

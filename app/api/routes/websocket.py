@@ -12,7 +12,7 @@ from app.chat.models import Message, Chat
 from app.container import container
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
-from app.llms.chat.hf_inference_chat import InferenceClientChat
+from app.llms.chat.inference_client_chat import InferenceClientChat
 from app.llms.stream_chat.generic_stream_chat import generic_stream_chat
 from app.models.Flag import Flag
 import json

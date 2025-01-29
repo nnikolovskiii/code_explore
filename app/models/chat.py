@@ -27,7 +27,7 @@ class ChatApi(MongoEntry):
     base_url: Optional[str] = None
 
 
-class ChatModel(MongoEntry):
+class ChatModelConfig(MongoEntry):
     name: str
     chat_api_type: str
     active: Optional[bool] = False
