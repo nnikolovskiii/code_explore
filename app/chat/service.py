@@ -1,9 +1,10 @@
 from datetime import datetime
 
+from cryptography.fernet import Fernet
+
 from app.llms.llm_factory import LLMFactory
 from app.llms.models import ChatLLM, StreamChatLLM
-from app.models.chat import ChatApi, ChatModelConfig, get_fernet
-from app.chat.models import Message, Chat
+from app.chat.models import Message, Chat, ChatApi, ChatModelConfig
 from app.databases.mongo_db import MongoDBDatabase
 from app.models.Flag import Flag
 from app.pipelines.chat_title_pipeline import ChatTitlePipeline
@@ -12,10 +13,12 @@ from app.pipelines.chat_title_pipeline import ChatTitlePipeline
 class ChatService:
     mdb: MongoDBDatabase
     llm_factory: LLMFactory
+    fernet: Fernet
 
-    def __init__(self, mdb: MongoDBDatabase, llm_factory: LLMFactory) -> None:
+    def __init__(self, mdb: MongoDBDatabase, llm_factory: LLMFactory, fernet: Fernet) -> None:
         self.mdb = mdb
         self.llm_factory = llm_factory
+        self.fernet = fernet
 
     async def get_messages_from_chat(
             self,
@@ -68,7 +71,7 @@ class ChatService:
             class_type=ChatApi,
         )
         encrypted_bytes = chat_api.api_key.encode('utf-8')
-        chat_api.api_key = get_fernet().decrypt(encrypted_bytes).decode()
+        chat_api.api_key = self.fernet.decrypt(encrypted_bytes).decode()
         return chat_api
 
 

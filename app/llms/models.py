@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Optional, AsyncGenerator, Any
-from app.models.chat import ChatModelConfig, ChatApi
+from app.chat.models import ChatApi, ChatModelConfig
 
 
 class BaseLLM(ABC):

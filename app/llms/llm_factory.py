@@ -6,7 +6,7 @@ from app.llms.chat.openai_chat import OpenAIChat
 from app.llms.models import ChatLLM, StreamChatLLM
 from app.llms.stream_chat.inference_client_stream import InferenceClientStreamChat
 from app.llms.stream_chat.openai_stream import OpenAIStreamChat
-from app.models.chat import ChatModelConfig, ChatApi
+from app.chat.models import ChatApi, ChatModelConfig
 
 
 class LLMFactory(BaseModel):

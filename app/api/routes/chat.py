@@ -4,12 +4,11 @@ from typing import Tuple, List
 from fastapi import HTTPException, APIRouter
 from pydantic import BaseModel
 
-from app.chat.models import Chat
+from app.chat.models import Chat, ChatApi, ChatModelConfig
 import logging
 
 from app.container import container
 from app.databases.mongo_db import MongoEntry
-from app.models.chat import ChatApi, get_fernet, ChatModelConfig
 from datetime import datetime, timedelta
 
 logging.basicConfig(level=logging.DEBUG)
@@ -85,9 +84,10 @@ async def get_chat_messages(chat_id: str):
 @router.post("/add_chat_api/", status_code=HTTPStatus.CREATED)
 async def add_chat_api(chat_api: ChatApi):
     mdb = container.mdb()
+    fernet = container.fernet()
 
     try:
-        chat_api.api_key = get_fernet().encrypt(chat_api.api_key.encode())
+        chat_api.api_key = fernet().encrypt(chat_api.api_key.encode())
         chat_api_obj = await mdb.get_entry_from_col_value(
             column_name="type",
             column_value=chat_api.type,
@@ -140,6 +140,7 @@ async def add_chat_model(chat_model: ChatModelConfig):
 @router.get("/get_chat_api_and_models/", status_code=HTTPStatus.CREATED)
 async def get_chat_api_and_models(type: str):
     mdb = container.mdb()
+    fernet = container.fernet()
 
     try:
         chat_api = await mdb.get_entry_from_col_value(
@@ -151,7 +152,7 @@ async def get_chat_api_and_models(type: str):
         if chat_api is None:
             raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="    Chat API does not exist")
 
-        chat_api.api_key = get_fernet().decrypt(chat_api.api_key).decode()
+        chat_api.api_key = fernet.decrypt(chat_api.api_key).decode()
         return {
             "models": await mdb.get_entries(ChatModelConfig, doc_filter={"chat_api_type": type}),
             "api": chat_api
