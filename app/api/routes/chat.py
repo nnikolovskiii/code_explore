@@ -87,7 +87,7 @@ async def add_chat_api(chat_api: ChatApi):
     fernet = container.fernet()
 
     try:
-        chat_api.api_key = fernet().encrypt(chat_api.api_key.encode())
+        chat_api.api_key = fernet.encrypt(chat_api.api_key.encode())
         chat_api_obj = await mdb.get_entry_from_col_value(
             column_name="type",
             column_value=chat_api.type,

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict, Optional, AsyncGenerator, Any
+from typing import List, Dict, Optional, AsyncGenerator, Any, Tuple
 from app.chat.models import ChatApi, ChatModelConfig
 
 
@@ -15,6 +15,7 @@ class BaseLLM(ABC):
     async def generate(self, **kwargs):
         pass
 
+
 class ChatLLM(BaseLLM):
     @abstractmethod
     async def generate(
@@ -24,6 +25,7 @@ class ChatLLM(BaseLLM):
             history: List[Dict[str, str]] = None
     ) -> str:
         pass
+
 
 class StreamChatLLM(BaseLLM):
     @abstractmethod
@@ -35,11 +37,20 @@ class StreamChatLLM(BaseLLM):
     ):
         raise NotImplementedError()
 
+
 class EmbeddingModel(BaseLLM):
     @abstractmethod
-    async def generate(self, model_input: str)->List[float]:
+    async def generate(self, model_input: str) -> List[float]:
         pass
 
-class Reranker(BaseLLM):  # Simplified name
-    async def generate(self, **kwargs):
+
+class Reranker(BaseLLM):
+    @abstractmethod
+    async def generate(
+            self,
+            query: str,
+            documents: List[str],
+            threshold: float,
+            top_k: int
+    ) -> List[Tuple[str, float]]:
         pass

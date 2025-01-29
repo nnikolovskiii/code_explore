@@ -1,29 +1,35 @@
 import os
+from typing import List, Tuple
 
 import cohere
 import asyncio
 
 from dotenv import load_dotenv
 
-load_dotenv()
-cohere_api_key = os.getenv("COHERE_API_KEY")
-
-co = cohere.AsyncClient(api_key=cohere_api_key)
-
-async def main():
-    response = await co.rerank(
-        model="rerank-v3.5",
-        query="What is the capital of the United States?",
-        documents=[
-            "Carson City is the capital city of the American state of Nevada.",
-            "The Commonwealth of the Northern Mariana Islands is a group of islands in the Pacific Ocean. Its capital is Saipan.",
-            "Capitalization or capitalisation in English grammar is the use of a capital letter at the start of a word. English usage varies from capitalization in other languages.",
-            "Washington, D.C. (also known as simply Washington or D.C., and officially as the District of Columbia) is the capital of the United States. It is a federal district.",
-            "Capital punishment has existed in the United States since beforethe United States was a country. As of 2017, capital punishment is legal in 30 of the 50 states.",
-        ],
-        top_n=3
-    )
-    print(response)
+from app.llms.models import Reranker
 
 
-asyncio.run(main())
+class CohereReranker(Reranker):
+    async def generate(
+            self,
+            query: str,
+            documents: List[str],
+            threshold: float,
+            top_k: int
+    ) -> List[Tuple[str, float]]:
+        co = cohere.AsyncClient(api_key=self.chat_api.api_key)
+
+        response = await co.rerank(
+            model=self.chat_model_config.name,
+            query=query,
+            documents=documents,
+            top_n=top_k
+        )
+
+        index_scores = [(elem.index, elem.relevance_score) for elem in response.results]
+        docs_scores = []
+        for index, score in index_scores:
+            if score > threshold:
+                docs_scores.append((documents[index], score))
+
+        return docs_scores
