@@ -23,7 +23,7 @@ async def create_readme_description(
 )->str:
     chat_service = container.chat_service()
     template = create_readme_description_template(readme_file)
-    chat_llm = await chat_service.create_model(model_name="Qwen/Qwen2.5-Coder-32B-Instruct")
+    chat_llm = await chat_service.get_chat_llm(model_name="Qwen/Qwen2.5-Coder-32B-Instruct")
     response = await chat_llm.generate(template)
     print(response)
 

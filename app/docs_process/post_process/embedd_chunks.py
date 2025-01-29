@@ -3,6 +3,7 @@ import logging
 
 from bson import ObjectId
 
+from app.container import container
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
 from app.databases.qdrant_db import QdrantDatabase
 
@@ -24,6 +25,9 @@ async def embedd_chunks(
         qdb: QdrantDatabase,
 ):
     process = await _create_embedd_process(docs_url, mdb)
+    chat_service = container.chat_service()
+    embedding_model = await chat_service.get_embedding_model("text-embedding-3-large")
+    await qdb.set_embedding_model(embedding_model)
 
     if process is None:
         return

@@ -5,11 +5,13 @@ from qdrant_client.async_qdrant_client import AsyncQdrantClient
 from qdrant_client import models
 from typing import Type as TypingType
 
-from app.llms.embedders.openai_embedder import embedd_content_with_model
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import os
 from qdrant_client.http.models import Record
+
+from app.llms.models import EmbeddingModel
+
 
 class SearchOutput(BaseModel):
     score: float
@@ -21,11 +23,15 @@ T = TypeVar("T")
 
 class QdrantDatabase:
     client: AsyncQdrantClient
+    embedding_model: EmbeddingModel
 
     def __init__(self, url: Optional[str] = None):
         load_dotenv()
         url = os.getenv("QDRANT_URL") if url is None else url
         self.client = AsyncQdrantClient(url=f"http://{url}:6333")
+
+    async def set_embedding_model(self, embedding_model):
+        self.embedding_model = embedding_model
 
     async def collection_exists(self, collection_name: str) -> bool:
         return await self.client.collection_exists(collection_name)
@@ -48,7 +54,7 @@ class QdrantDatabase:
         if not await self.collection_exists(collection_name):
             await self.create_collection(collection_name)
 
-        vector = await embedd_content_with_model(value)
+        vector = await self.embedding_model.generate(value)
         payload = entity.model_dump()
         if metadata:
             payload.update(metadata)
@@ -112,7 +118,7 @@ class QdrantDatabase:
     ) -> List[T]:
         collection_name = class_type.__name__ if collection_name is None else collection_name
         field_condition = QdrantDatabase._generate_filter(filters=filter)
-        vector = await embedd_content_with_model(value)
+        vector = await self.embedding_model.generate(value)
 
         points =  await self.client.search(
             query_vector=vector,

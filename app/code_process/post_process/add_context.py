@@ -59,7 +59,7 @@ async def add_context(
     context = await _get_surrounding_context(chunk, content, context_len)
     template = add_context_template(context=context, chunk_text=chunk.content)
 
-    chat_llm = await chat_service.create_model(model_name="Qwen/Qwen2.5-Coder-32B-Instruct")
+    chat_llm = await chat_service.get_chat_llm(model_name="Qwen/Qwen2.5-Coder-32B-Instruct")
     response = await chat_llm.generate(template,
                                   system_message="You are an AI assistant designed in providing contextual summaries of code.")
     code_context=CodeContext(

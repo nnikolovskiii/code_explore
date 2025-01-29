@@ -1,9 +1,10 @@
 from datetime import datetime
+from typing import Tuple
 
 from cryptography.fernet import Fernet
 
 from app.llms.llm_factory import LLMFactory
-from app.llms.models import ChatLLM, StreamChatLLM
+from app.llms.models import ChatLLM, StreamChatLLM, EmbeddingModel
 from app.chat.models import Message, Chat, ChatApi, ChatModelConfig
 from app.databases.mongo_db import MongoDBDatabase
 from app.models.Flag import Flag
@@ -55,14 +56,29 @@ class ChatService:
 
         return history
 
-    async def get_active_chat_model(self) -> ChatModelConfig:
+    async def save_user_chat(
+            self,
+            user_message: str,
+    ) -> str:
+        chat_llm = await self.get_chat_llm(model_name="Qwen/Qwen2.5-Coder-32B-Instruct")
+        chat_name_pipeline = ChatTitlePipeline(chat_llm=chat_llm)
+        response = await chat_name_pipeline.execute(message=user_message)
+
+        chat_obj = Chat(title=response["title"])
+        chat_obj.timestamp = datetime.now()
+
+        return await self.mdb.add_entry(chat_obj)
+
+    async def get_active_chat_model(self) -> Tuple[ChatModelConfig, ChatApi]:
         chat_model = await self.mdb.get_entry_from_col_value(
             column_name="active",
             column_value=True,
             class_type=ChatModelConfig,
         )
 
-        return chat_model
+        chat_api = await self.get_chat_api(type=chat_model.chat_api_type)
+
+        return chat_model, chat_api
 
     async def get_chat_api(self, type: str) -> ChatApi:
         chat_api = await self.mdb.get_entry_from_col_value(
@@ -74,34 +90,28 @@ class ChatService:
         chat_api.api_key = self.fernet.decrypt(encrypted_bytes).decode()
         return chat_api
 
-
-    async def create_model(self, model_name) -> ChatLLM:
-        chat_model = await self.mdb.get_entry_from_col_values(
+    async def get_model_config(self, model_name)->Tuple[ChatModelConfig, ChatApi]:
+        chat_model_config = await self.mdb.get_entry_from_col_values(
             columns={"name": model_name},
             class_type=ChatModelConfig,
         )
 
-        chat_api = await self.get_chat_api(chat_model.chat_api_type)
+        chat_api = await self.get_chat_api(chat_model_config.chat_api_type)
 
-        if chat_model is None or chat_api is None:
+        if chat_model_config is None or chat_api is None:
             raise Exception(f"Model {model_name} not found")
 
-        return self.llm_factory.crete_chat_llm(chat_api=chat_api, chat_model_config=chat_model)
+        return chat_model_config, chat_api
 
-    async def create_chat(
-            self,
-            user_message: str,
-    ) -> str:
-        chat_llm = await self.create_model(model_name="Qwen/Qwen2.5-Coder-32B-Instruct")
-        chat_name_pipeline = ChatTitlePipeline(chat_llm=chat_llm)
-        response = await chat_name_pipeline.execute(message=user_message)
+    async def get_chat_llm(self, model_name) -> ChatLLM:
+        chat_model_config, chat_api = await self.get_model_config(model_name)
+        return self.llm_factory.crete_chat_llm(chat_api=chat_api, chat_model_config=chat_model_config)
 
-        chat_obj = Chat(title=response["title"])
-        chat_obj.timestamp = datetime.now()
+    async def get_embedding_model(self, model_name) -> EmbeddingModel:
+        chat_model_config, chat_api = await self.get_model_config(model_name)
+        return self.llm_factory.create_embedding_model(chat_api=chat_api, chat_model_config=chat_model_config)
 
-        return await self.mdb.add_entry(chat_obj)
 
     async def get_active_stream_chat(self)->StreamChatLLM:
-        chat_model = await self.get_active_chat_model()
-        chat_api = await self.get_chat_api(type=chat_model.chat_api_type)
-        return self.llm_factory.create_stream_llm(chat_api=chat_api, chat_model_config=chat_model)
+        chat_model_config ,chat_api = await self.get_active_chat_model()
+        return self.llm_factory.create_stream_llm(chat_api=chat_api, chat_model_config=chat_model_config)

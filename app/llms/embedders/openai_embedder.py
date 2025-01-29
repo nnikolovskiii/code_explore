@@ -4,31 +4,20 @@ from dotenv import load_dotenv
 import httpx
 from typing import List
 
+from openai import AsyncOpenAI
 
-async def embedd_content_with_model(
-        content: str
-) -> List[float]:
-    load_dotenv()
-    openai_api_key = os.getenv("OPENAI_API_KEY")
-    url = 'https://api.openai.com/v1/embeddings'
+from app.llms.models import EmbeddingModel
 
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {openai_api_key}'
-    }
 
-    data = {
-        'input': content,
-        'model': 'text-embedding-3-large'
-    }
+class OpenAIEmbeddingModel(EmbeddingModel):
+    async def generate(self, model_input: str) -> List[float]:
+        client = AsyncOpenAI(api_key=self.chat_api.api_key)
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(url, headers=headers, json=data)
-
-    if response.status_code == 200:
-        response_data = response.json()
-        return response_data['data'][0]['embedding']
-    else:
-        response.raise_for_status()
-
-# asyncio.run(embedd_content_with_model("Hello World"))
+        try:
+            response = await client.embeddings.create(
+                input=model_input,
+                model=self.chat_model_config.name
+            )
+            return response.data[0].embedding
+        except Exception as e:
+            raise e

@@ -35,7 +35,7 @@ async def websocket_endpoint(websocket: WebSocket, mdb: mdb_dep):
 
             history = await chat_service.get_history_from_chat(chat_id=chat_id)
             if chat_id is None:
-                chat_id = await chat_service.create_chat(user_message=message)
+                chat_id = await chat_service.save_user_chat(user_message=message)
 
             chat_obj = await mdb.get_entry(ObjectId(chat_id), Chat)
 
