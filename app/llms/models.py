@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Optional, AsyncGenerator, Any, Tuple
-from app.chat.models import ChatApi, ChatModelConfig
+from app.chat.models import ModelApi, ModelConfig
 
 
 class BaseLLM(ABC):
-    chat_model_config: ChatModelConfig
-    chat_api: ChatApi
+    chat_model_config: ModelConfig
+    chat_api: ModelApi
 
-    def __init__(self, chat_model_config: ChatModelConfig, chat_api: ChatApi):
+    def __init__(self, chat_model_config: ModelConfig, chat_api: ModelApi):
         self.chat_model_config = chat_model_config
         self.chat_api = chat_api
 
