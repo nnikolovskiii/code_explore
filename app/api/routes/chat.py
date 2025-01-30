@@ -101,7 +101,7 @@ async def get_active_model():
     chat_service = container.chat_service()
 
     try:
-        chat_model, _ = await chat_service.get_active_chat_model(model_type="chat")
+        chat_model, _ = await chat_service.get_active_model_config(model_type="chat")
         return chat_model
     except Exception as e:
         logging.error(f"Failed to add entry: {e}")

@@ -1,4 +1,3 @@
-import asyncio
 import logging
 
 from bson import ObjectId
@@ -6,6 +5,7 @@ from bson import ObjectId
 from app.container import container
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
 from app.databases.qdrant_db import QdrantDatabase
+from app.llms.models import EmbeddingModel
 
 from app.models.docs import DocsChunk, DocsContext, Link
 from app.models.process import create_process, increment_process, finish_process, Process
@@ -26,7 +26,7 @@ async def embedd_chunks(
 ):
     process = await _create_embedd_process(docs_url, mdb)
     chat_service = container.chat_service()
-    embedding_model = await chat_service.get_embedding_model("text-embedding-3-large")
+    embedding_model = await chat_service.get_model("text-embedding-3-large", EmbeddingModel)
     await qdb.set_embedding_model(embedding_model)
 
     if process is None:

@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta
-from typing import Tuple
+from typing import Tuple, TypeVar, Type
 
 from cryptography.fernet import Fernet
+from groq.types import Embedding
 
 from app.llms.llm_factory import LLMFactory
-from app.llms.models import ChatLLM, StreamChatLLM, EmbeddingModel
+from app.llms.models import BaseLLM, StreamChatLLM, Reranker, ChatLLM, EmbeddingModel
 from app.chat.models import Message, Chat, ModelApi, ModelConfig
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
 from app.models.Flag import Flag
@@ -14,6 +15,9 @@ from app.pipelines.chat_title_pipeline import ChatTitlePipeline
 class ActiveModelDto(MongoEntry):
     model: str
     type: str
+
+
+T = TypeVar('T', bound=BaseLLM)
 
 
 class ChatService:
@@ -113,30 +117,31 @@ class ChatService:
 
         # chat_api.api_key = self.fernet.decrypt(chat_api.api_key).decode()
         return {
-            "models": await self.mdb.get_entries(ModelConfig, doc_filter={"chat_api_type": type, "model_type": model_type}),
+            "models": await self.mdb.get_entries(ModelConfig,
+                                                 doc_filter={"chat_api_type": type, "model_type": model_type}),
             "api": None
         }
 
     async def set_active_model(self, active_model_dto: ActiveModelDto, model_type: str):
-            current_active = await self.mdb.get_entry_from_col_values(
-                columns={"active": True, "model_type": model_type},
-                class_type=ModelConfig
-            )
+        current_active = await self.mdb.get_entry_from_col_values(
+            columns={"active": True, "model_type": model_type},
+            class_type=ModelConfig
+        )
 
-            if current_active is not None:
-                current_active.active = False
-                await self.mdb.update_entry(current_active)
+        if current_active is not None:
+            current_active.active = False
+            await self.mdb.update_entry(current_active)
 
-            new_active = await self.mdb.get_entry_from_col_values(
-                columns={"name": active_model_dto.model, "model_type": model_type},
-                class_type=ModelConfig
-            )
+        new_active = await self.mdb.get_entry_from_col_values(
+            columns={"name": active_model_dto.model, "model_type": model_type},
+            class_type=ModelConfig
+        )
 
-            if new_active is None:
-                raise Exception("Chat Model does not exist")
-            else:
-                new_active.active = True
-                await self.mdb.update_entry(new_active)
+        if new_active is None:
+            raise Exception("Chat Model does not exist")
+        else:
+            new_active.active = True
+            await self.mdb.update_entry(new_active)
 
     async def get_messages_from_chat(
             self,
@@ -177,7 +182,7 @@ class ChatService:
             self,
             user_message: str,
     ) -> str:
-        chat_llm = await self.get_chat_llm(model_name="Qwen/Qwen2.5-Coder-32B-Instruct")
+        chat_llm = await self.get_model(model_name="Qwen/Qwen2.5-Coder-32B-Instruct", class_type=ChatLLM)
         chat_name_pipeline = ChatTitlePipeline(chat_llm=chat_llm)
         response = await chat_name_pipeline.execute(message=user_message)
 
@@ -186,47 +191,57 @@ class ChatService:
 
         return await self.mdb.add_entry(chat_obj)
 
-    async def get_active_chat_model(self, model_type: str) -> Tuple[ModelConfig, ModelApi]:
+    async def get_active_model_config(self, model_type: str) -> Tuple[ModelConfig, ModelApi]:
         model_config = await self.mdb.get_entry_from_col_values(
             columns={"active": True, "model_type": model_type},
             class_type=ModelConfig,
         )
 
-        model_api = await self.get_chat_api(type=model_config.chat_api_type)
+        model_api = await self.get_model_api(type=model_config.chat_api_type)
 
         return model_config, model_api
 
-    async def get_chat_api(self, type: str) -> ModelApi:
-        chat_api = await self.mdb.get_entry_from_col_value(
+    async def get_model_api(self, type: str) -> ModelApi:
+        model_api = await self.mdb.get_entry_from_col_value(
             column_name="type",
             column_value=type,
             class_type=ModelApi,
         )
-        encrypted_bytes = chat_api.api_key.encode('utf-8')
-        chat_api.api_key = self.fernet.decrypt(encrypted_bytes).decode()
-        return chat_api
+        encrypted_bytes = model_api.api_key.encode('utf-8')
+        model_api.api_key = self.fernet.decrypt(encrypted_bytes).decode()
+        return model_api
 
     async def get_model_config(self, model_name) -> Tuple[ModelConfig, ModelApi]:
-        chat_model_config = await self.mdb.get_entry_from_col_values(
+        model_config = await self.mdb.get_entry_from_col_values(
             columns={"name": model_name},
             class_type=ModelConfig,
         )
 
-        chat_api = await self.get_chat_api(chat_model_config.chat_api_type)
+        chat_api = await self.get_model_api(model_config.chat_api_type)
 
-        if chat_model_config is None or chat_api is None:
+        if model_config is None or chat_api is None:
             raise Exception(f"Model {model_name} not found")
 
-        return chat_model_config, chat_api
+        return model_config, chat_api
 
-    async def get_chat_llm(self, model_name) -> ChatLLM:
-        chat_model_config, chat_api = await self.get_model_config(model_name)
-        return self.llm_factory.crete_chat_llm(chat_api=chat_api, chat_model_config=chat_model_config)
+    async def get_model(self, model_name: str, class_type: Type[T]) -> T:
+        model_config, chat_api = await self.get_model_config(model_name)
+        return self.llm_factory.create_model(chat_api=chat_api, chat_model_config=model_config, class_type=class_type)
 
-    async def get_embedding_model(self, model_name) -> EmbeddingModel:
-        chat_model_config, chat_api = await self.get_model_config(model_name)
-        return self.llm_factory.create_embedding_model(chat_api=chat_api, chat_model_config=chat_model_config)
+    async def get_active_model(self, class_type: Type[T]) -> T:
+        model_type = self._get_model_type_from_class(class_type)
+        model_config, chat_api = await self.get_active_model_config(model_type=model_type)
+        return self.llm_factory.create_model(chat_api=chat_api, chat_model_config=model_config, class_type=class_type)
 
-    async def get_active_stream_chat(self) -> StreamChatLLM:
-        chat_model_config, chat_api = await self.get_active_chat_model("chat")
-        return self.llm_factory.create_stream_llm(chat_api=chat_api, chat_model_config=chat_model_config)
+    @staticmethod
+    def _get_model_type_from_class(class_type: Type[T]) -> str:
+        if issubclass(class_type, StreamChatLLM):
+            return "chat"
+        elif issubclass(class_type, ChatLLM):
+            return "chat"
+        elif issubclass(class_type, EmbeddingModel):
+            return "embedding"
+        elif issubclass(class_type, Reranker):
+            return "reranker"
+        else:
+            raise Exception(f"Unknown type {class_type}")

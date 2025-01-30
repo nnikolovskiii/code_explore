@@ -11,6 +11,7 @@ from app.chat.models import Message, Chat
 from app.container import container
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
+from app.llms.models import StreamChatLLM
 from app.models.Flag import Flag
 import json
 
@@ -51,7 +52,9 @@ async def websocket_endpoint(websocket: WebSocket, mdb: mdb_dep):
                 class_type=Flag
             )
 
-            active_model = await chat_service.get_active_stream_chat()
+            active_model = await chat_service.get_active_model(class_type=StreamChatLLM)
+            print(active_model.chat_model_config)
+            print(active_model.chat_api)
 
             response = ""
 

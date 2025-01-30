@@ -10,8 +10,10 @@ from typing import Type as TypingType
 from dotenv import load_dotenv
 from pymongo.errors import DuplicateKeyError, ConnectionFailure
 
+
 class MongoEntry(BaseModel):
     id: Optional[str] = None
+
 
 T = TypeVar('T', bound=MongoEntry)
 
@@ -282,7 +284,6 @@ class MongoDBDatabase:
 
         return result.modified_count > 0
 
-
     async def delete_collection(self, collection_name: str) -> bool:
         if collection_name not in await self.db.list_collection_names():
             logging.info(f"Collection '{collection_name}' does not exist.")
@@ -336,7 +337,7 @@ class MongoDBDatabase:
     async def count_entries_dict(
             self,
             collection_name: str,
-        doc_filter: Dict[str, Any] = None,
+            doc_filter: Dict[str, Any] = None,
     ) -> int:
         collection = self.db[collection_name]
         return await collection.count_documents(doc_filter or {})
