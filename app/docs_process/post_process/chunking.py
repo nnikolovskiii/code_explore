@@ -4,7 +4,7 @@ from typing import List
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
 from langchain_text_splitters import Language
 from app.models.docs import DocsChunk, DocsEmbeddingFlag, DocsContent, Link
-from app.models.process import create_process, increment_process, finish_process, Process
+from app.models.processstatus import create_process, increment_process, finish_process, ProcessStatus
 from app.models.splitters.text_splitters import TextSplitter
 
 class ChunkLink(MongoEntry):
@@ -78,7 +78,7 @@ async def chunk_links(
         doc_filter={"url": docs_url})
 
 
-async def _create_chunk_process(docs_url: str, mdb: MongoDBDatabase) -> Process | None:
+async def _create_chunk_process(docs_url: str, mdb: MongoDBDatabase) -> ProcessStatus | None:
     count = 0
     await mdb.delete_entries(
         class_type=ChunkLink,

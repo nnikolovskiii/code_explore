@@ -12,7 +12,7 @@ from app.databases.singletons import get_mongo_db, get_qdrant_db
 from app.docs_process.pre_process.extract_content import extract_contents
 from app.docs_process.pre_process.traverse_sites import traverse_links, check_prev_links, set_parent_flags
 from app.models.docs import DocsUrl, Link, DocsContent, DocsChunk, DocsContext, DocsEmbeddingFlag
-from app.models.process import Process, create_process, finish_process
+from app.models.processstatus import ProcessStatus, create_process, finish_process
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -48,7 +48,7 @@ async def extract_library(
             await mdb.delete_entries(Link, doc_filter={"base_url": docs_url})
             await qdb.delete_records(collection_name="DocsChunk", doc_filter={("base_url", "value"): docs_url})
             await mdb.delete_entries(DocsEmbeddingFlag, doc_filter={"base_url": docs_url})
-            await mdb.delete_entries(Process, doc_filter={"url": docs_url})
+            await mdb.delete_entries(ProcessStatus, doc_filter={"url": docs_url})
 
         urls = await mdb.get_entries(DocsUrl, doc_filter={"url": docs_url})
         if len(urls) == 0:

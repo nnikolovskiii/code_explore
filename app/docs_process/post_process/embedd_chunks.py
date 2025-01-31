@@ -8,7 +8,7 @@ from app.databases.qdrant_db import QdrantDatabase
 from app.llms.models import EmbeddingModel
 
 from app.models.docs import DocsChunk, DocsContext, Link
-from app.models.process import create_process, increment_process, finish_process, Process
+from app.models.processstatus import create_process, increment_process, finish_process, ProcessStatus
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +99,7 @@ async def _set_embedding_flags(
 async def _create_embedd_process(
         docs_url: str,
         mdb: MongoDBDatabase
-) -> Process | None:
+) -> ProcessStatus | None:
     await mdb.delete_entries(
         class_type=EmbeddChunk,
         doc_filter={"url": docs_url})

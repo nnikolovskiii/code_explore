@@ -5,7 +5,7 @@ from bson import ObjectId
 from app.databases.mongo_db import MongoEntry, MongoDBDatabase
 
 
-class Process(MongoEntry):
+class ProcessStatus(MongoEntry):
     finished: bool = False
     end: Optional[int] = None
     curr: Optional[int] = None
@@ -27,8 +27,8 @@ async def create_process(
         curr: Optional[int] = None,
         status: Optional[str] = None,
         group: Optional[str] = None,
-)->Process:
-    process_id = await mdb.add_entry(Process(
+)->ProcessStatus:
+    process_id = await mdb.add_entry(ProcessStatus(
         end=end,
         process_type=process_type,
         url=url,
@@ -38,10 +38,10 @@ async def create_process(
         status=status,
         group=group,
     ))
-    return await mdb.get_entry(ObjectId(process_id), Process)
+    return await mdb.get_entry(ObjectId(process_id), ProcessStatus)
 
 async def increment_process(
-        process:Process,
+        process:ProcessStatus,
         mdb:MongoDBDatabase,
         num: int,
         step:int = 10,
@@ -51,7 +51,7 @@ async def increment_process(
         await mdb.update_entry(process)
 
 async def set_end(
-        process:Process,
+        process:ProcessStatus,
         end: int,
         mdb:MongoDBDatabase,
 ):
@@ -61,14 +61,14 @@ async def set_end(
 
 async def update_status_process(
         new_status: str,
-        process:Process,
+        process:ProcessStatus,
         mdb:MongoDBDatabase
 ):
     process.status = new_status
     await mdb.update_entry(process)
 
 async def finish_process(
-        process:Process,
+        process:ProcessStatus,
         mdb:MongoDBDatabase
 ):
     process.finished = True

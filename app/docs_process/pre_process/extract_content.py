@@ -6,7 +6,7 @@ from app.databases.mongo_db import MongoDBDatabase
 from bs4 import BeautifulSoup, Tag
 
 from app.models.docs import DocsContent, Link
-from app.models.process import Process, set_end, increment_process, finish_process
+from app.models.processstatus import ProcessStatus, set_end, increment_process, finish_process
 
 
 async def _get_beautiful_soup(
@@ -60,7 +60,7 @@ async def extract_contents(
         selector: str,
         selector_type: str,
         selector_attrs: str,
-        process: Process,
+        process: ProcessStatus,
         mdb: MongoDBDatabase
 ):
     counter = 0
