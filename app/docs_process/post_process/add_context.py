@@ -7,7 +7,7 @@ from app.databases.mongo_db import MongoDBDatabase, MongoEntry
 from app.llms.chat.inference_client_chat import InferenceClientChat
 from app.llms.models import ChatLLM
 from app.models.docs import DocsChunk, Link, DocsContent, DocsContext
-from app.models.processstatus import create_process, increment_process, finish_process, ProcessStatus
+from app.models.process_tracker import create_process, increment_process, finish_process, ProcessTracker
 from app.pipelines.chunk_context_pipeline import ChunkContextPipeline
 
 
@@ -109,7 +109,7 @@ async def add_context_links(
 async def _create_context_process(
         mdb: MongoDBDatabase,
         docs_url: str,
-) -> ProcessStatus | None:
+) -> ProcessTracker | None:
     await mdb.delete_entries(
         class_type=AddContextChunk,
         doc_filter={"url": docs_url}

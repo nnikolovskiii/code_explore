@@ -9,7 +9,7 @@ import logging
 
 from app.databases.qdrant_db import QdrantDatabase
 from app.databases.singletons import get_mongo_db, get_qdrant_db
-from app.models.Flag import Flag
+from app.models.flag import Flag
 
 logging.basicConfig(level=logging.DEBUG)
 

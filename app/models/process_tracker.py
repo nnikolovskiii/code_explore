@@ -5,7 +5,7 @@ from bson import ObjectId
 from app.databases.mongo_db import MongoEntry, MongoDBDatabase
 
 
-class ProcessStatus(MongoEntry):
+class ProcessTracker(MongoEntry):
     finished: bool = False
     end: Optional[int] = None
     curr: Optional[int] = None
@@ -27,8 +27,8 @@ async def create_process(
         curr: Optional[int] = None,
         status: Optional[str] = None,
         group: Optional[str] = None,
-)->ProcessStatus:
-    process_id = await mdb.add_entry(ProcessStatus(
+)->ProcessTracker:
+    process_id = await mdb.add_entry(ProcessTracker(
         end=end,
         process_type=process_type,
         url=url,
@@ -38,10 +38,10 @@ async def create_process(
         status=status,
         group=group,
     ))
-    return await mdb.get_entry(ObjectId(process_id), ProcessStatus)
+    return await mdb.get_entry(ObjectId(process_id), ProcessTracker)
 
 async def increment_process(
-        process:ProcessStatus,
+        process:ProcessTracker,
         mdb:MongoDBDatabase,
         num: int,
         step:int = 10,
@@ -51,7 +51,7 @@ async def increment_process(
         await mdb.update_entry(process)
 
 async def set_end(
-        process:ProcessStatus,
+        process:ProcessTracker,
         end: int,
         mdb:MongoDBDatabase,
 ):
@@ -61,14 +61,14 @@ async def set_end(
 
 async def update_status_process(
         new_status: str,
-        process:ProcessStatus,
+        process:ProcessTracker,
         mdb:MongoDBDatabase
 ):
     process.status = new_status
     await mdb.update_entry(process)
 
 async def finish_process(
-        process:ProcessStatus,
+        process:ProcessTracker,
         mdb:MongoDBDatabase
 ):
     process.finished = True

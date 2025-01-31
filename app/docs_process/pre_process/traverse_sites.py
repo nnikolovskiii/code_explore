@@ -9,7 +9,7 @@ from tqdm import tqdm
 import re
 
 from app.models.docs import Link
-from app.models.processstatus import ProcessStatus, increment_process, update_status_process, set_end, finish_process
+from app.models.process_tracker import ProcessTracker, increment_process, update_status_process, set_end, finish_process
 
 
 def _get_neighbouring_links(url: str) -> set:
@@ -33,7 +33,7 @@ def _get_neighbouring_links(url: str) -> set:
         return set()
 
 
-async def traverse_links(docs_url: str, patterns: List[str], process: ProcessStatus, mdb: MongoDBDatabase):
+async def traverse_links(docs_url: str, patterns: List[str], process: ProcessTracker, mdb: MongoDBDatabase):
     await mdb.add_entry(Link(
         base_url=docs_url,
         prev_link=docs_url,
@@ -108,7 +108,7 @@ async def traverse_links(docs_url: str, patterns: List[str], process: ProcessSta
 
 
 
-async def check_prev_links(docs_url: str, process: ProcessStatus, mdb: MongoDBDatabase):
+async def check_prev_links(docs_url: str, process: ProcessTracker, mdb: MongoDBDatabase):
     num_links = await mdb.count_entries(Link, {"base_url": docs_url})
 
     await set_end(process, num_links, mdb)
@@ -144,7 +144,7 @@ async def check_prev_links(docs_url: str, process: ProcessStatus, mdb: MongoDBDa
     await finish_process(process, mdb)
 
 
-async def set_parent_flags(docs_url: str, process: ProcessStatus, mdb: MongoDBDatabase):
+async def set_parent_flags(docs_url: str, process: ProcessTracker, mdb: MongoDBDatabase):
     num_links = await mdb.count_entries(Link, {"base_url": docs_url})
     await set_end(process, num_links, mdb)
     counter = 0

@@ -8,7 +8,7 @@ from app.llms.llm_factory import LLMFactory
 from app.llms.models import BaseLLM, StreamChatLLM, Reranker, ChatLLM, EmbeddingModel
 from app.chat.models import Message, Chat, ModelApi, ModelConfig
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
-from app.models.Flag import Flag
+from app.models.flag import Flag
 from app.pipelines.chat_title_pipeline import ChatTitlePipeline
 
 

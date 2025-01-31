@@ -12,7 +12,7 @@ from app.container import container
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
 from app.llms.models import StreamChatLLM
-from app.models.Flag import Flag
+from app.models.flag import Flag
 import json
 
 
