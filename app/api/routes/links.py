@@ -1,8 +1,11 @@
-from typing import Annotated, List, Set
+from typing import Annotated, Set
 
 from fastapi import APIRouter, Depends
 from openai import BaseModel
 
+from app.docs_process.post_process.add_context import AddContextProcess, AddContextChunk
+from app.docs_process.post_process.chunking import ChunkProcess, ChunkLink
+from app.docs_process.post_process.embedd_chunks import EmbeddChunk, EmbeddingProcess
 from app.utils.qdrant_utils import update_records
 from app.databases.mongo_db import MongoDBDatabase
 
@@ -10,7 +13,6 @@ import logging
 
 from app.databases.qdrant_db import QdrantDatabase
 from app.databases.singletons import get_mongo_db, get_qdrant_db
-from app.docs_process.post_process.post_process import process_links_flow
 
 from app.models.docs import Link
 
@@ -49,11 +51,15 @@ async def get_links_from_parent(prev_link: str, mdb: mdb_dep):
 
 @router.get("/process_links/")
 async def process_links(docs_url: str, mdb: mdb_dep, qdb: qdb_dep):
-    await process_links_flow(
-        docs_url=docs_url,
-        mdb=mdb,
-        qdb=qdb,
-    )
+    logging.info("chunk_links")
+    chunk_process = ChunkProcess(mdb=mdb, class_type=ChunkLink, group_id=docs_url)
+    await chunk_process.execute_process()
+    logging.info("add_context_links")
+    add_context_process = AddContextProcess(mdb=mdb, class_type=AddContextChunk, group_id=docs_url)
+    await add_context_process.execute_process()
+    logging.info("embedd_chunks")
+    embedding_process = EmbeddingProcess(mdb=mdb, class_type=EmbeddChunk, qdb=qdb, group_id=docs_url)
+    await embedding_process.execute_process()
 
 @router.get("/activate_link/")
 async def activate_link(link:str, active_status:bool, mdb: mdb_dep, qdb: qdb_dep):
