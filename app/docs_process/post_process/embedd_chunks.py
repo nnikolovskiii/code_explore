@@ -1,12 +1,12 @@
 import logging
-from typing import Type
+from typing import Type, Any, Dict
 
 from bson import ObjectId
 
 from app.container import container
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
 from app.databases.qdrant_db import QdrantDatabase
-from app.docs_process.process import Process, T
+from app.docs_process.group_process import GroupProcess, T
 from app.llms.models import EmbeddingModel
 
 from app.models.docs import DocsChunk, DocsContext, Link
@@ -20,15 +20,27 @@ class EmbeddChunk(MongoEntry):
     link: str
 
 
-class EmbeddingProcess(Process):
+class EmbeddingProcess(GroupProcess):
     qdb: QdrantDatabase
 
     def __init__(self, mdb: MongoDBDatabase, class_type: Type[T], group_id: str, qdb: QdrantDatabase):
-        super().__init__(mdb, class_type, group_id)
+        super().__init__(mdb,group_id, class_type)
         self.qdb = qdb
 
     @property
+    def execute_process_filters(self) -> Dict[str, Any]:
+        return {"url": self.group_id}
+
+    @property
     def process_type(self) -> str:
+        return "post"
+
+    @property
+    def stream_filters(self) -> Dict[str, Any]:
+        return {"processed": False, "active": True}
+
+    @property
+    def process_name(self) -> str:
         return "embedd"
 
     async def pre_execute_process(self):

@@ -1,10 +1,10 @@
 import logging
-from typing import Type, Optional
+from typing import Type, Optional, Dict, Any
 
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
 from langchain_text_splitters import Language
 
-from app.docs_process.process import Process, T
+from app.docs_process.group_process import GroupProcess, T
 from app.models.docs import DocsChunk, DocsContent, Link
 from app.models.splitters.text_splitters import TextSplitter
 
@@ -14,12 +14,12 @@ class ChunkLink(MongoEntry):
     url: str
 
 
-class ChunkProcess(Process):
+class ChunkProcess(GroupProcess):
     text_splitter: TextSplitter
 
     def __init__(self, mdb: MongoDBDatabase, class_type: Type[T], group_id: str,
                  text_splitter: Optional[TextSplitter] = None):
-        super().__init__(mdb, class_type, group_id)
+        super().__init__(mdb,group_id, class_type)
         self.text_splitter = text_splitter if text_splitter is not None else (
             TextSplitter(
                 chunk_size=1000,
@@ -31,7 +31,19 @@ class ChunkProcess(Process):
         self.text_splitter._separators = separators
 
     @property
+    def execute_process_filters(self) -> Dict[str, Any]:
+        return {"url": self.group_id}
+
+    @property
     def process_type(self) -> str:
+        return "post"
+
+    @property
+    def stream_filters(self) -> Dict[str, Any]:
+        return {"processed": False, "active": True}
+
+    @property
+    def process_name(self) -> str:
         return "chunk"
 
     async def execute_single(self, chunk_link: ChunkLink):

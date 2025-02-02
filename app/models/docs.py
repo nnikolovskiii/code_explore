@@ -15,6 +15,9 @@ class Link(MongoEntry):
     color: Optional[str] = None
     processed: bool = False
     traversed: bool = False
+    extracted: bool = False
+    check_parent: bool = False
+    set_parent: bool = False
     batch: int = 1
 
 

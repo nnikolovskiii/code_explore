@@ -1,11 +1,11 @@
 import logging
-from typing import Type
+from typing import Type, Dict, Any
 
 from bson import ObjectId
 
 from app.container import container
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
-from app.docs_process.process import Process, T
+from app.docs_process.group_process import GroupProcess, T
 from app.llms.models import ChatLLM
 from app.models.docs import DocsChunk, Link, DocsContent, DocsContext
 from app.pipelines.chunk_context_pipeline import ChunkContextPipeline
@@ -17,15 +17,27 @@ class AddContextChunk(MongoEntry):
     url: str
 
 
-class AddContextProcess(Process):
+class AddContextProcess(GroupProcess):
     context_len: int
 
     def __init__(self, mdb: MongoDBDatabase, class_type: Type[T], group_id: str, context_len: int = 50000):
-        super().__init__(mdb, class_type, group_id)
+        super().__init__(mdb, group_id, class_type)
         self.context_len = context_len
 
     @property
     def process_type(self) -> str:
+        return "post"
+
+    @property
+    def execute_process_filters(self) -> Dict[str, Any]:
+        return {"url": self.group_id}
+
+    @property
+    def stream_filters(self) -> Dict[str, Any]:
+        return {"processed": False, "active": True}
+
+    @property
+    def process_name(self) -> str:
         return "context"
 
     async def execute_single(self, context_chunk: AddContextChunk):
