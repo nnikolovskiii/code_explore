@@ -95,7 +95,7 @@ class MongoDBDatabase:
         collection_name = class_type.__name__ if collection_name is None else collection_name
         collection = self.db[collection_name]
 
-        cursor = collection.find(doc_filter or {})
+        cursor = collection.find(doc_filter or {}, batch_size=1000)
 
         async for doc in cursor:
             doc['id'] = str(doc.pop('_id'))
@@ -109,7 +109,7 @@ class MongoDBDatabase:
     ) -> AsyncGenerator[Dict[str, any], None]:
         collection = self.db[collection_name]
 
-        cursor = collection.find(doc_filter or {})
+        cursor = collection.find(doc_filter or {}, batch_size=1000)
 
         async for doc in cursor:
             doc['id'] = str(doc.pop('_id'))
