@@ -52,5 +52,5 @@ class Reranker(BaseLLM):
             documents: List[str],
             threshold: float,
             top_k: int
-    ) -> List[Tuple[str, float]]:
+    ) -> List[Tuple[int, float]]:
         pass

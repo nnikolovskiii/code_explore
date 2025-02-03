@@ -16,7 +16,7 @@ class CohereReranker(Reranker):
             documents: List[str],
             threshold: float,
             top_k: int
-    ) -> List[Tuple[str, float]]:
+    ) -> List[Tuple[int, float]]:
         co = cohere.AsyncClient(api_key=self.chat_api.api_key)
 
         response = await co.rerank(
@@ -26,10 +26,6 @@ class CohereReranker(Reranker):
             top_n=top_k
         )
 
-        index_scores = [(elem.index, elem.relevance_score) for elem in response.results]
-        docs_scores = []
-        for index, score in index_scores:
-            if score > threshold:
-                docs_scores.append((documents[index], score))
+        index_scores = [(elem.index, elem.relevance_score) for elem in response.results if elem.relevance_score>=threshold]
 
-        return docs_scores
+        return index_scores
