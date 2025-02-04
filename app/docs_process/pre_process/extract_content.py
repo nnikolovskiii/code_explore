@@ -1,15 +1,19 @@
-from typing import Optional
+from typing import Optional, Dict, Any
 
 import aiohttp
 import html2text
+from bson import ObjectId
+
 from app.databases.mongo_db import MongoDBDatabase
 from bs4 import BeautifulSoup, Tag
 
-from app.docs_process.single_process import SingleProcess
+from app.docs_process.group_process import GroupProcess, T, ProcessObj
 from app.models.docs import DocsContent, Link
 
+class ExtractionLinkId(ProcessObj):
+    link_id: str
 
-class ExtractContentProcess(SingleProcess):
+class ExtractContentProcess(GroupProcess):
     selector: str
     selector_type: str
     selector_attrs: Optional[str] = None
@@ -23,12 +27,13 @@ class ExtractContentProcess(SingleProcess):
             selector_type: str,
             selector_attrs: Optional[str] = None,
     ):
-        super().__init__(mdb, group_id, order)
+        super().__init__(mdb, group_id, order, ExtractionLinkId)
         self.selector = selector
         self.selector_type = selector_type
         self.selector_attrs = selector_attrs
 
-    async def execute_single(self, link_obj: Link):
+    async def execute_single(self, link_id: ExtractionLinkId):
+        link_obj = await self.mdb.get_entry(ObjectId(link_id.link_id), Link)
         link = link_obj.link
         try:
             content = await self._html_to_markdown(url=link)
@@ -42,14 +47,24 @@ class ExtractContentProcess(SingleProcess):
 
                     await self.mdb.add_entry(content)
 
-            await self.mdb.update_entry(entity=link_obj, update={self.process_name: True})
+            link_obj.extracted = True
+            await self.mdb.update_entry(entity=link_obj)
         except Exception as e:
             await self.mdb.delete_entity(link_obj)
             print(f"An unexpected error occurred: {e}")
 
+    async def add_not_processed(self, link_obj: Link) -> int:
+        if not link_obj.extracted:
+            await self.mdb.add_entry(ExtractionLinkId(group_id=self.group_id, link_id=link_obj.id))
+            return 1
+
+    @property
+    def stream_filters(self) -> Dict[str, Any]:
+        return {"extracted": False}
+
     @property
     def process_name(self) -> str:
-        return "extracted"
+        return "extract"
 
     @property
     def process_type(self) -> str:

@@ -1,25 +1,24 @@
 import logging
 from typing import Type, Optional, Dict, Any
 
-from app.databases.mongo_db import MongoDBDatabase, MongoEntry
+from app.databases.mongo_db import MongoDBDatabase
 from langchain_text_splitters import Language
 
-from app.docs_process.group_process import GroupProcess, T
+from app.docs_process.group_process import GroupProcess, T, ProcessObj
 from app.models.docs import DocsChunk, DocsContent, Link
 from app.models.splitters.text_splitters import TextSplitter
 
 
-class ChunkLink(MongoEntry):
+class ChunkLink(ProcessObj):
     link: str
-    url: str
 
 
 class ChunkProcess(GroupProcess):
     text_splitter: TextSplitter
 
-    def __init__(self, mdb: MongoDBDatabase, class_type: Type[T], group_id: str,
+    def __init__(self, mdb: MongoDBDatabase, order:int, class_type: Type[T], group_id: str,
                  text_splitter: Optional[TextSplitter] = None):
-        super().__init__(mdb,group_id, class_type)
+        super().__init__(mdb,group_id,order, class_type)
         self.text_splitter = text_splitter if text_splitter is not None else (
             TextSplitter(
                 chunk_size=1000,
@@ -29,10 +28,6 @@ class ChunkProcess(GroupProcess):
 
         separators = self.text_splitter.get_separators_for_language(Language.MARKDOWN)
         self.text_splitter._separators = separators
-
-    @property
-    def execute_process_filters(self) -> Dict[str, Any]:
-        return {"url": self.group_id}
 
     @property
     def process_type(self) -> str:
@@ -65,7 +60,7 @@ class ChunkProcess(GroupProcess):
             class_type=DocsChunk
         )
         if exist_one_chunk is None:
-            await self.mdb.add_entry(ChunkLink(link=link_obj.link, url=self.group_id))
+            await self.mdb.add_entry(ChunkLink(link=link_obj.link, group_id=self.group_id))
             count += 1
 
         return count

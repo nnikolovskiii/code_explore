@@ -4,33 +4,28 @@ from typing import Type, Dict, Any
 from bson import ObjectId
 
 from app.container import container
-from app.databases.mongo_db import MongoDBDatabase, MongoEntry
-from app.docs_process.group_process import GroupProcess, T
+from app.databases.mongo_db import MongoDBDatabase
+from app.docs_process.group_process import GroupProcess, T, ProcessObj
 from app.llms.models import ChatLLM
 from app.models.docs import DocsChunk, Link, DocsContent, DocsContext
 from app.pipelines.chunk_context_pipeline import ChunkContextPipeline
 
 
-class AddContextChunk(MongoEntry):
+class AddContextChunk(ProcessObj):
     chunk_id: str
     link: str
-    url: str
 
 
 class AddContextProcess(GroupProcess):
     context_len: int
 
-    def __init__(self, mdb: MongoDBDatabase, class_type: Type[T], group_id: str, context_len: int = 50000):
-        super().__init__(mdb, group_id, class_type)
+    def __init__(self, mdb: MongoDBDatabase, order: int, class_type: Type[T], group_id: str, context_len: int = 50000):
+        super().__init__(mdb, group_id, order, class_type)
         self.context_len = context_len
 
     @property
     def process_type(self) -> str:
         return "post"
-
-    @property
-    def execute_process_filters(self) -> Dict[str, Any]:
-        return {"url": self.group_id}
 
     @property
     def stream_filters(self) -> Dict[str, Any]:
@@ -64,7 +59,7 @@ class AddContextProcess(GroupProcess):
         chunks = [chunk for chunk in chunks if chunk.doc_len != 1]
         for chunk in chunks:
             if not chunk.context_processed:
-                await self.mdb.add_entry(AddContextChunk(chunk_id=chunk.id, url=self.group_id, link=chunk.link))
+                await self.mdb.add_entry(AddContextChunk(chunk_id=chunk.id, group_id=self.group_id, link=chunk.link))
                 count += 1
 
         return count

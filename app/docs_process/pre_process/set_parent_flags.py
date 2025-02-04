@@ -1,9 +1,8 @@
-from app.docs_process.single_process import SingleProcess
+from app.docs_process.simple_process import SimpleProcess
 from app.models.docs import Link
 
 
-class SetParentFlags(SingleProcess):
-
+class SetParentFlags(SimpleProcess):
     async def execute_single(self, link_obj: Link):
         first_link_obj = await self.mdb.get_entry_from_col_value(
             column_name="prev_link",
@@ -16,10 +15,9 @@ class SetParentFlags(SingleProcess):
 
         await self.mdb.update_entry(entity=link_obj, update={self.process_name: True})
 
-
     @property
     def process_name(self) -> str:
-        return "set_parent"
+        return "parents"
 
     @property
     def process_type(self) -> str:

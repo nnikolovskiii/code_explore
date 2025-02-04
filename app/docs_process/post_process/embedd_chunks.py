@@ -4,9 +4,9 @@ from typing import Type, Any, Dict
 from bson import ObjectId
 
 from app.container import container
-from app.databases.mongo_db import MongoDBDatabase, MongoEntry
+from app.databases.mongo_db import MongoDBDatabase
 from app.databases.qdrant_db import QdrantDatabase
-from app.docs_process.group_process import GroupProcess, T
+from app.docs_process.group_process import GroupProcess, T, ProcessObj
 from app.llms.models import EmbeddingModel
 
 from app.models.docs import DocsChunk, DocsContext, Link
@@ -14,22 +14,17 @@ from app.models.docs import DocsChunk, DocsContext, Link
 logger = logging.getLogger(__name__)
 
 
-class EmbeddChunk(MongoEntry):
+class EmbeddChunk(ProcessObj):
     chunk_id: str
-    url: str
     link: str
 
 
 class EmbeddingProcess(GroupProcess):
     qdb: QdrantDatabase
 
-    def __init__(self, mdb: MongoDBDatabase, class_type: Type[T], group_id: str, qdb: QdrantDatabase):
-        super().__init__(mdb,group_id, class_type)
+    def __init__(self, mdb: MongoDBDatabase,order:int, class_type: Type[T], group_id: str, qdb: QdrantDatabase):
+        super().__init__(mdb,group_id,order, class_type)
         self.qdb = qdb
-
-    @property
-    def execute_process_filters(self) -> Dict[str, Any]:
-        return {"url": self.group_id}
 
     @property
     def process_type(self) -> str:
@@ -81,7 +76,7 @@ class EmbeddingProcess(GroupProcess):
             chunks = await self.mdb.get_entries(DocsChunk, doc_filter={"link": link_obj.link})
             for chunk in chunks:
                 if not chunk.processed:
-                    await self.mdb.add_entry(EmbeddChunk(chunk_id=chunk.id, url=self.group_id, link=chunk.link))
+                    await self.mdb.add_entry(EmbeddChunk(chunk_id=chunk.id, group_id=self.group_id, link=chunk.link))
                     count += 1
 
             return count

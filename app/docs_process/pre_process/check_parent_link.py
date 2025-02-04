@@ -1,14 +1,10 @@
 import logging
 
-from app.docs_process.single_process import SingleProcess
+from app.docs_process.simple_process import SimpleProcess
 from app.models.docs import Link
 
 
-class CheckParentLinkProcess(SingleProcess):
-    @property
-    def process_type(self) -> str:
-        return "pre"
-
+class CheckParentLinkProcess(SimpleProcess):
     async def execute_single(self, link_obj: Link):
         curr_link = link_obj.prev_link
         while True:
@@ -39,4 +35,9 @@ class CheckParentLinkProcess(SingleProcess):
 
     @property
     def process_name(self) -> str:
-        return "check_parent"
+        return "check"
+
+    @property
+    def process_type(self) -> str:
+        return "pre"
+

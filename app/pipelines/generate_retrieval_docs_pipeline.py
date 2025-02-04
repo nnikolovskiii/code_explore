@@ -1,6 +1,6 @@
 from typing import List
 
-from app.models.pipeline import StreamPipeline
+from app.pipelines.pipeline import StreamPipeline
 
 
 class GenerateRetrievalDocsPipeline(StreamPipeline):

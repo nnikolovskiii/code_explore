@@ -237,18 +237,18 @@ typecheck = ["mypy"]
 
 [[package]]
 name = "beautifulsoup4"
-version = "4.13.0"
+version = "4.13.3"
 description = "Screen-scraping library"
 optional = false
-python-versions = ">=3.6.0"
+python-versions = ">=3.7.0"
 files = [
-    {file = "beautifulsoup4-4.13.0-py3-none-any.whl", hash = "sha256:9c4c3dfa67aba55f6cd03769c441b21e6a369797fd6766e4b4c6b3399aae2735"},
-    {file = "beautifulsoup4-4.13.0.tar.gz", hash = "sha256:b6e5afb3a2b1472c8db751a92eabf7834e5c7099f990c5e4b35f1f16b60bae64"},
+    {file = "beautifulsoup4-4.13.3-py3-none-any.whl", hash = "sha256:99045d7d3f08f91f0d656bc9b7efbae189426cd913d830294a15eefa0ea4df16"},
+    {file = "beautifulsoup4-4.13.3.tar.gz", hash = "sha256:1bd32405dacc920b42b83ba01644747ed77456a65760e285fbc47633ceddaf8b"},
 ]
 
 [package.dependencies]
 soupsieve = ">1.2"
-typing-extensions = "*"
+typing-extensions = ">=4.0.0"
 
 [package.extras]
 cchardet = ["cchardet"]
@@ -1180,13 +1180,13 @@ colorama = ">=0.4"
 
 [[package]]
 name = "groq"
-version = "0.16.0"
+version = "0.17.0"
 description = "The official Python library for the groq API"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "groq-0.16.0-py3-none-any.whl", hash = "sha256:74a4d2ea2d122eb272f44991bc82f5fdca975cc4374d0d09c5494337faccc05f"},
-    {file = "groq-0.16.0.tar.gz", hash = "sha256:127cf364504d9e9f2b1b35ee64693e4740b785d54957d05bf5494cf26196044e"},
+    {file = "groq-0.17.0-py3-none-any.whl", hash = "sha256:1eb24de4588a34576f115defcc06c88351021db03efd0b8c668ea526e8c44bf6"},
+    {file = "groq-0.17.0.tar.gz", hash = "sha256:8643d64af02c26bf45658b30b78fc1fed6ff1404f43a90b66656c85a2285066c"},
 ]
 
 [package.dependencies]
@@ -1753,13 +1753,13 @@ langchain-core = ">=0.3.29,<0.4.0"
 
 [[package]]
 name = "langsmith"
-version = "0.3.4"
+version = "0.3.5"
 description = "Client library to connect to the LangSmith LLM Tracing and Evaluation Platform."
 optional = false
 python-versions = "<4.0,>=3.9"
 files = [
-    {file = "langsmith-0.3.4-py3-none-any.whl", hash = "sha256:f3b818ce31dc3bdf1f797e75bf32a8a7b062a411f146bd4ffdfc2be0b4b03233"},
-    {file = "langsmith-0.3.4.tar.gz", hash = "sha256:79fd516e68bbc30f408ab0b30a92175e5be0f5c21002e30a7804c59cb72cfe1a"},
+    {file = "langsmith-0.3.5-py3-none-any.whl", hash = "sha256:29da924d2e3662dd56f96d179ebc06662b66dd0b2317362ccebe0de1b78750e7"},
+    {file = "langsmith-0.3.5.tar.gz", hash = "sha256:d891a205f70ab0b2c26311db6c52486ffc9fc1124238b999619445f6ae900725"},
 ]
 
 [package.dependencies]
@@ -1779,13 +1779,13 @@ pytest = ["pytest (>=7.0.0)", "rich (>=13.9.4,<14.0.0)"]
 
 [[package]]
 name = "logfire-api"
-version = "3.4.0"
+version = "3.5.1"
 description = "Shim for the Logfire SDK which does nothing unless Logfire is installed"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "logfire_api-3.4.0-py3-none-any.whl", hash = "sha256:39eac7ca8fa993c95992c97382dddd6d88fc91e344a132c7672b32c1e6e3c923"},
-    {file = "logfire_api-3.4.0.tar.gz", hash = "sha256:7bf778d563659bdfb907df4712433fd5e253a3d3c3efed5ea9c22a59b59041cf"},
+    {file = "logfire_api-3.5.1-py3-none-any.whl", hash = "sha256:ff12cf13d0343e4d318c4e7087abc8a0663ef099c2e3daf0cedef4df348438fc"},
+    {file = "logfire_api-3.5.1.tar.gz", hash = "sha256:30b3b9e5ff94b7c436b4f4689961573685408fa34f155490ea00926f554f3032"},
 ]
 
 [[package]]

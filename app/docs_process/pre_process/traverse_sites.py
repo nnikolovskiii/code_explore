@@ -22,8 +22,8 @@ class TraverseSitesBatch(MongoEntry):
 class TraverseSitesProcess(Process):
     patterns: List[str]
 
-    def __init__(self, mdb: MongoDBDatabase, group_id: str, patterns: List[str]):
-        super().__init__(mdb, group_id)
+    def __init__(self, mdb: MongoDBDatabase, group_id: str, order: int, patterns: List[str]):
+        super().__init__(mdb, group_id, order)
         self.patterns = patterns
 
     @property
@@ -34,23 +34,26 @@ class TraverseSitesProcess(Process):
     def process_type(self) -> str:
         return "pre"
 
-    async def create_process_status(self) -> ProcessTracker | None:
+    async def create_process_tracker(self) -> ProcessTracker | None:
         return await create_process(
             url=self.group_id,
             mdb=self.mdb,
             process_type="traverse",
             type="docs",
-            order=1,
+            order=self.order,
             group="pre"
         )
 
     async def execute_process(self):
-        process = await self.create_process_status()
+        process = await self.create_process_tracker()
 
         batch = await self.mdb.get_entry_from_col_values(
             columns={"docs_url": self.group_id},
             class_type=TraverseSitesBatch,
         )
+
+        print(self.group_id)
+        print(batch)
 
         if batch is None:
             await self.mdb.add_entry(Link(

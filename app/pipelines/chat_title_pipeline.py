@@ -1,4 +1,4 @@
-from app.models.pipeline import ChatPipeline
+from app.pipelines.pipeline import ChatPipeline
 
 
 class ChatTitlePipeline(ChatPipeline):

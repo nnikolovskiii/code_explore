@@ -47,18 +47,17 @@ async def extract_library(
         await mdb.delete_entries(DocsContext, doc_filter={"base_url": docs_url})
         if True:
             await mdb.delete_entries(Link, doc_filter={"base_url": docs_url})
+            await mdb.delete_entries(TraverseSitesBatch, doc_filter={"docs_url": docs_url})
         await qdb.delete_records(collection_name="DocsChunk", doc_filter={("base_url", "value"): docs_url})
         await mdb.delete_entries(DocsEmbeddingFlag, doc_filter={"base_url": docs_url})
         await mdb.delete_entries(ProcessTracker, doc_filter={"url": docs_url})
-        await mdb.delete_entries(TraverseSitesBatch, doc_filter={"docs_url": docs_url})
-
 
         await mdb.add_entry(DocsUrl(url=docs_url, active=True))
         main_process = await create_process(url=docs_url, mdb=mdb, process_type="main", type="docs", order=0,
                                             group="pre")
 
         logging.info("traverse")
-        traverse_process = TraverseSitesProcess(mdb=mdb, group_id=docs_url, patterns=pattern_dto.patterns)
+        traverse_process = TraverseSitesProcess(mdb=mdb, group_id=docs_url, patterns=pattern_dto.patterns, order=1)
         await traverse_process.execute_process()
 
         logging.info("extract")

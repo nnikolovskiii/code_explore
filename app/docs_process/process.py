@@ -13,10 +13,12 @@ T = TypeVar('T', bound=BaseModel)
 class Process(ABC):
     mdb: MongoDBDatabase
     group_id: str
+    order:int
 
-    def __init__(self, mdb: MongoDBDatabase, group_id: str):
+    def __init__(self, mdb: MongoDBDatabase, group_id: str, order: int):
         self.mdb = mdb
         self.group_id = group_id
+        self.order = order
 
     @property
     @abstractmethod
@@ -31,7 +33,7 @@ class Process(ABC):
         pass
 
     @abstractmethod
-    async def create_process_status(self) -> ProcessTracker | None:
+    async def create_process_tracker(self) -> ProcessTracker | None:
         pass
 
     @abstractmethod
