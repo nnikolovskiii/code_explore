@@ -6,6 +6,7 @@ import os
 from app.chat.service import ChatService
 from app.databases.mongo_db import MongoDBDatabase
 from app.llms.llm_factory import LLMFactory
+from app.telegram.telegram_bot import TelegramBot
 
 
 def create_fernet():
@@ -23,11 +24,16 @@ class Container(containers.DeclarativeContainer):
 
     fernet = providers.Singleton(create_fernet)
 
+    telegram_bot = providers.Singleton(
+        TelegramBot
+    )
+
     chat_service = providers.Factory(
         ChatService,
         llm_factory=llm_factory,
         mdb=mdb,
         fernet=fernet
     )
+
 
 container = Container()

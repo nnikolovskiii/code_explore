@@ -14,7 +14,7 @@ from app.docs_process.pre_process.extract_content import ExtractContentProcess
 from app.docs_process.pre_process.set_parent_flags import SetParentFlags
 from app.docs_process.pre_process.traverse_sites import TraverseSitesProcess, TraverseSitesBatch
 from app.models.docs import DocsUrl, Link, DocsContent, DocsChunk, DocsContext, DocsEmbeddingFlag
-from app.models.process_tracker import ProcessTracker, create_process, finish_process
+from app.models.process_tracker import ProcessTracker, ProgressCoordinator
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -53,8 +53,14 @@ async def extract_library(
         await mdb.delete_entries(ProcessTracker, doc_filter={"url": docs_url})
 
         await mdb.add_entry(DocsUrl(url=docs_url, active=True))
-        main_process = await create_process(url=docs_url, mdb=mdb, process_type="main", type="docs", order=0,
-                                            group="pre")
+        main_process_coord = await ProgressCoordinator.create(
+            url=docs_url,
+            mdb=mdb,
+            process_type="main",
+            type="docs",
+            order=0,
+            group="pre"
+        )
 
         logging.info("traverse")
         traverse_process = TraverseSitesProcess(mdb=mdb, group_id=docs_url, patterns=pattern_dto.patterns, order=1)
@@ -79,7 +85,7 @@ async def extract_library(
         parents_process = SetParentFlags(mdb=mdb, group_id=docs_url, order=4)
         await parents_process.execute_process()
 
-        await finish_process(main_process, mdb)
+        await main_process_coord.complete_process()
         return {"status": "success", "message": "Fetched links and processed successfully."}
     except Exception as e:
         logging.exception("Error cloning library")

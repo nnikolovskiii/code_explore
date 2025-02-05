@@ -1,11 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import TypeVar, Type
+from typing import TypeVar, Type, Optional
 
 from pydantic import BaseModel
 
 from app.databases.mongo_db import MongoDBDatabase
-from app.models.docs import Link
-from app.models.process_tracker import ProcessTracker, create_process, finish_process, increment_process
+from app.models.process_tracker import ProcessTracker, ProgressCoordinator
 
 T = TypeVar('T', bound=BaseModel)
 
@@ -14,6 +13,7 @@ class Process(ABC):
     mdb: MongoDBDatabase
     group_id: str
     order:int
+    progress_coordinator: Optional[ProgressCoordinator] = None
 
     def __init__(self, mdb: MongoDBDatabase, group_id: str, order: int):
         self.mdb = mdb

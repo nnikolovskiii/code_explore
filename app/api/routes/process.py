@@ -9,7 +9,7 @@ import logging
 
 from app.databases.qdrant_db import QdrantDatabase
 from app.databases.singletons import get_mongo_db, get_qdrant_db
-from app.models.process_tracker import ProcessTracker, create_process
+from app.models.process_tracker import ProcessTracker, ProgressCoordinator
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -70,13 +70,12 @@ async def get_process(url:str, process_type:str, group: str, mdb: mdb_dep):
 async def create_processes(url:str, group:str, mdb: mdb_dep):
     try:
         await mdb.delete_entries(ProcessTracker, doc_filter={"url": url, "group": group})
-        await create_process(
+        await ProgressCoordinator.create(
             url=url,
             mdb=mdb,
             process_type="main",
             type="docs",
             order=0,
-            status="Started the process. Please refresh.",
             group="pre"
         )
         return True

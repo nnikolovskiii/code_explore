@@ -10,8 +10,7 @@ import re
 
 from app.docs_process.process import Process
 from app.models.docs import Link
-from app.models.process_tracker import ProcessTracker, increment_process, update_status_process, set_end, \
-    finish_process, create_process
+from app.models.process_tracker import ProgressCoordinator
 
 
 class TraverseSitesBatch(MongoEntry):
@@ -34,8 +33,8 @@ class TraverseSitesProcess(Process):
     def process_type(self) -> str:
         return "pre"
 
-    async def create_process_tracker(self) -> ProcessTracker | None:
-        return await create_process(
+    async def create_process_tracker(self):
+        self.progress_coordinator = await ProgressCoordinator.create(
             url=self.group_id,
             mdb=self.mdb,
             process_type="traverse",
@@ -45,7 +44,10 @@ class TraverseSitesProcess(Process):
         )
 
     async def execute_process(self):
-        process = await self.create_process_tracker()
+        try:
+            await self.create_process_tracker()
+        except Exception as e:
+            return
 
         batch = await self.mdb.get_entry_from_col_values(
             columns={"docs_url": self.group_id},
@@ -87,16 +89,16 @@ class TraverseSitesProcess(Process):
                                                       {"traversed": False, "base_url": self.group_id,
                                                        "batch": batch.curr_batch})
 
-            await update_status_process(f"Iteration: {batch.curr_batch}", process, self.mdb)
-            await set_end(process, num_links, self.mdb)
-
-            if num_links == 0:
+            await self.progress_coordinator.update_status(f"Iteration: {batch.curr_batch}")
+            try:
+                await self.progress_coordinator.set_total_steps(num_links)
+            except Exception as e:
                 break
 
             async for link_obj in self.mdb.stream_entries(Link,
                                                           {"traversed": False, "base_url": self.group_id,
                                                            "batch": batch.curr_batch}):
-                await increment_process(process=process, mdb=self.mdb, num=curr_count)
+                await self.progress_coordinator.increment_progress(num=curr_count)
                 curr_count += 1
                 link_obj.traversed = True
                 await  self.mdb.update_entry(link_obj)
@@ -140,7 +142,7 @@ class TraverseSitesProcess(Process):
                                 print(link_already_exists)
                                 print(link)
 
-        await finish_process(process, self.mdb)
+        await self.progress_coordinator.complete_process()
 
     @staticmethod
     def _get_neighbouring_links(url: str) -> set:

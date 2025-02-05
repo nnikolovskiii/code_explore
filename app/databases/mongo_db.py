@@ -355,3 +355,19 @@ class MongoDBDatabase:
             print("Index created successfully.")
         except Exception as e:
             print(f"An error occurred: {e}")
+
+    async def atomic_update(
+            self,
+            id: ObjectId,
+            update_operation: Dict[str, Any],
+            class_type: TypingType[T],
+            collection_name: Optional[str] = None,
+    ) -> bool:
+        collection_name = class_type.__name__ if collection_name is None else collection_name
+        collection = self.db[collection_name]
+
+        result = await collection.update_one(
+            {"_id": id},
+            update_operation
+        )
+        return result.modified_count > 0

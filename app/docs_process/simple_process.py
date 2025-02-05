@@ -2,14 +2,14 @@ from abc import ABC, abstractmethod
 
 from app.docs_process.process import Process
 from app.models.docs import Link
-from app.models.process_tracker import ProcessTracker, create_process, increment_process, finish_process
+from app.models.process_tracker import ProgressCoordinator
 
 
 class SimpleProcess(Process, ABC):
-    async def create_process_tracker(self) -> ProcessTracker | None:
+    async def create_process_tracker(self):
         doc_filter = {"base_url": self.group_id}
         num_links = await self.mdb.count_entries(Link, doc_filter)
-        process = await create_process(
+        self.progress_coordinator = await ProgressCoordinator.create(
             url=self.group_id,
             mdb=self.mdb,
             process_type=self.process_name,
@@ -19,14 +19,12 @@ class SimpleProcess(Process, ABC):
             curr=0,
             end=num_links,
         )
-        return process
-
 
     async def execute_process(self):
         await self.pre_execute_process()
-        process = await self.create_process_tracker()
-
-        if process is None:
+        try:
+            await self.create_process_tracker()
+        except Exception as ex:
             return
 
         count = 0
@@ -34,11 +32,11 @@ class SimpleProcess(Process, ABC):
                 class_type=Link,
                 doc_filter={"base_url": self.group_id}
         ):
-            await increment_process(process, self.mdb, count, 10)
+            await self.progress_coordinator.increment_progress(count, 10)
             await self.execute_single(entry)
             count += 1
 
-        await finish_process(process, self.mdb)
+        await self.progress_coordinator.complete_process()
 
         await self.post_execute_process()
 
