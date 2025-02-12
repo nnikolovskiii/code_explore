@@ -79,7 +79,7 @@ async def websocket_endpoint(websocket: WebSocket, mdb: mdb_dep):
                     await websocket.send_text(response_chunk)
                     await asyncio.sleep(0.0001)
 
-            await websocket.send_text("<ASTOR>")
+            await websocket.send_text(f"<ASTOR>:{chat_id}")
             await asyncio.sleep(0.1)
 
             await mdb.add_entry(Message(

@@ -182,7 +182,7 @@ class ChatService:
             self,
             user_message: str,
     ) -> str:
-        chat_llm = await self.get_model(model_name="Qwen/Qwen2.5-Coder-32B-Instruct", class_type=ChatLLM)
+        chat_llm = await self.get_model(model_name="deepseek-chat", class_type=ChatLLM)
         chat_name_pipeline = ChatTitlePipeline(chat_llm=chat_llm)
         response = await chat_name_pipeline.execute(message=user_message)
 

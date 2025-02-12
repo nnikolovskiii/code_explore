@@ -3,6 +3,8 @@ from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 import os
 
+from app.auth.services.password import PasswordService
+from app.auth.services.user import UserService
 from app.chat.service import ChatService
 from app.databases.mongo_db import MongoDBDatabase
 from app.llms.llm_factory import LLMFactory
@@ -33,6 +35,16 @@ class Container(containers.DeclarativeContainer):
         llm_factory=llm_factory,
         mdb=mdb,
         fernet=fernet
+    )
+
+    user_service = providers.Factory(
+        UserService,
+        mdb=mdb,
+    )
+
+    password_service = providers.Factory(
+        PasswordService,
+        mdb=mdb,
     )
 
 

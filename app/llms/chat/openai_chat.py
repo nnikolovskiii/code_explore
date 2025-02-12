@@ -26,7 +26,7 @@ class OpenAIChat(ChatLLM):
 
         try:
             response = await client.chat.completions.create(
-                model=self.chat_model_config.model_name,
+                model=self.chat_model_config.name,
                 messages=messages,
                 max_tokens=500
             )

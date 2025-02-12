@@ -24,3 +24,4 @@ data/*
 
 .venv
 /poetry.toml
+**/__init__.py

@@ -4,6 +4,7 @@ import os
 from telegram import Bot
 from telegram.constants import ParseMode
 from dotenv import load_dotenv
+import asyncio
 
 class TelegramBot:
     bot: Bot
@@ -25,3 +26,10 @@ class TelegramBot:
             )
         except Exception as e:
             logging.error(e)
+
+# async def start():
+#     bot = TelegramBot()
+#     await bot.send_message("hello", 5910334398)
+#
+# asyncio.run(start())
+
