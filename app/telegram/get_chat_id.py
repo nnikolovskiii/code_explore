@@ -1,7 +1,11 @@
-import requests
+import os
 
-BOT_TOKEN = "7768934095:AAGq8tNLTp6toBEZW20IJi6wcazlEpJTiwk"
-API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+bot_token = os.getenv("TELEGRAM_TOKEN")
+API_URL = f"https://api.telegram.org/bot{bot_token}/getUpdates"
 
 try:
     response = requests.get(API_URL)
