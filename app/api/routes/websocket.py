@@ -4,6 +4,8 @@ import asyncio
 from bson import ObjectId
 from fastapi import WebSocket
 
+from app.api.routes.auth import get_current_user_websocket
+from app.auth.models.user import User
 from app.chat.chat import chat
 import logging
 
@@ -24,7 +26,11 @@ mdb_dep = Annotated[MongoDBDatabase, Depends(get_mongo_db)]
 
 
 @router.websocket("/")
-async def websocket_endpoint(websocket: WebSocket, mdb: mdb_dep):
+async def websocket_endpoint(
+        websocket: WebSocket,
+        mdb: mdb_dep,
+        current_user: User = Depends(get_current_user_websocket)
+):
     chat_service = container.chat_service()
 
     await websocket.accept()
@@ -36,7 +42,7 @@ async def websocket_endpoint(websocket: WebSocket, mdb: mdb_dep):
 
             history = await chat_service.get_history_from_chat(chat_id=chat_id)
             if chat_id is None:
-                chat_id = await chat_service.save_user_chat(user_message=message)
+                chat_id = await chat_service.save_user_chat(user_message=message, user_email=current_user.email)
 
             chat_obj = await mdb.get_entry(ObjectId(chat_id), Chat)
 

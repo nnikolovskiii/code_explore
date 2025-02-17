@@ -1,15 +1,16 @@
 from http import HTTPStatus
 from typing import Tuple, List
 
-from fastapi import HTTPException, APIRouter
+from fastapi import HTTPException, APIRouter, Depends
 from pydantic import BaseModel
 
+from app.api.routes.auth import get_current_user
+from app.auth.models.user import User
 from app.chat.models import ModelApi, ModelConfig
 import logging
 
 from app.chat.service import ActiveModelDto
 from app.container import container
-
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -27,11 +28,13 @@ class MessagesDto(BaseModel):
 
 
 @router.get("/get_chats/", status_code=HTTPStatus.CREATED)
-async def get_chats():
+async def get_chats(
+        current_user: User = Depends(get_current_user)
+):
     chat_service = container.chat_service()
 
     try:
-        categorized_chats = await chat_service.get_chats_by_datetime()
+        categorized_chats = await chat_service.get_chats_by_datetime(current_user.email)
     except Exception as e:
         logging.error(f"Failed to add entry: {e}")
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to add entry")
@@ -82,7 +85,6 @@ async def get_chat_api_and_models(type: str):
     except Exception as e:
         logging.error(f"Failed to add entry: {e}")
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to add entry")
-
 
 
 @router.post("/set_active_model/", status_code=HTTPStatus.CREATED)

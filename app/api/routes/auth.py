@@ -1,12 +1,12 @@
-import asyncio
 import os
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException
-from fastapi.params import Form
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, HTTPException, Response, WebSocketException
+from fastapi.params import Form, Depends
 from pydantic import BaseModel
 import jwt
+from fastapi import WebSocket
+from starlette import status
 from app.auth.models.user import User
 from app.container import container
 from datetime import datetime, timedelta, timezone
@@ -19,10 +19,12 @@ load_dotenv()
 secret = os.getenv("JWT_SECRET")
 algorithm = os.getenv("ALGORITHM")
 
+
 class UserRegistration(BaseModel):
     email: EmailStr
     password: str
     full_name: str
+
 
 @router.post("/register")
 async def register(
@@ -45,20 +47,29 @@ async def register(
 
     return {"message": "Registration successful"}
 
+
 class UserLogin(BaseModel):
     email: str
     password: str
 
+
 @router.post("/login")
 async def login(
-        user_data: UserLogin
+        user_data: UserLogin,
+        response: Response
 ):
     user_service = container.user_service()
     password_service = container.password_service()
 
     user = await user_service.get_user(user_data.email)
-    print(user)
-    if not user or not password_service.verify_password(user_data.password, user.hashed_password):
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    is_password_correct = password_service.verify_password(
+        user_data.password, user.hashed_password
+    )
+
+    if not is_password_correct:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if user.is_google_auth:
         raise HTTPException(status_code=400, detail="Use Google login")
@@ -70,21 +81,33 @@ async def login(
         algorithm=algorithm,
     )
 
-    response = RedirectResponse(url="/", status_code=303)
     response.set_cookie(
         key="access_token",
         value=f"Bearer {jwt_token}",
         httponly=True,
-        max_age=1800,
+        # secure=True,  # Requires HTTPS in production
+        samesite="lax",
+        max_age=1800
     )
 
-    print(jwt_token)
-    return response
+    return {
+        "access_token": jwt_token,
+        "token_type": "bearer"
+    }
 
 
-async def get_current_user(
-        request: Request,
-) -> User:
+@router.post("/logout")
+async def logout(response: Response):
+    response.delete_cookie(
+        "access_token",
+        httponly=True,
+        secure=True,
+        samesite="strict"
+    )
+    return {"message": "Logged out successfully"}
+
+
+async def get_current_user(request: Request) -> User:
     user_service = container.user_service()
 
     token = request.cookies.get("access_token")
@@ -92,7 +115,7 @@ async def get_current_user(
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     try:
-        token = token.strip().removeprefix("Bearer").strip()
+        token = token.replace("Bearer ", "").strip()
         payload = jwt.decode(token, secret, algorithms=[algorithm])
         email = payload.get("sub")
         if not email:
@@ -105,34 +128,48 @@ async def get_current_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    print(user)
     return user
 
-if __name__ == "__main__":
-    # The provided JWT token
-    test_token = ("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
-                  "eyJzdWIiOiJuaWtvbG92c2tpLm5pa29sYTQyQGdtYWlsLmNvbSIsImV4cCI6MTczOTMyMTM4M30."
-                  "g0JZ5WzXTeeXe_Cs7zjalk8QVslLNVEYiSzEZIlqDXE")
 
-    # Build a minimal ASGI scope that includes a "cookie" header with our token.
-    # The cookie value is set as "Bearer <token>".
-    scope = {
-        "type": "http",
-        "method": "GET",
-        "headers": [
-            (b"cookie", f"access_token=Bearer {test_token}".encode("latin-1"))
-        ],
-    }
+async def get_current_user_websocket(websocket: WebSocket) -> User:
+    user_service = container.user_service()
 
-    # Create a Request instance from the scope.
-    request = Request(scope)
+    token = websocket.cookies.get("access_token")
+    if not token:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
 
-    # Run the get_current_user function in an asyncio event loop.
     try:
-        current_user = asyncio.run(get_current_user(request))
-        print("User found:", current_user)
-    except HTTPException as exc:
-        print("HTTPException:", exc.detail)
+        # Remove Bearer prefix if present
+        token = token.replace("Bearer ", "").strip()
+        payload = jwt.decode(token, secret, algorithms=[algorithm])
+        email = payload.get("sub")
+        if not email:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
 
+    except PyJWTError as e:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
+
+    user = await user_service.get_user(email)
+    if not user:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
+
+    return user
+
+
+@router.get("/me")
+async def get_protected_data(
+        current_user: User = Depends(get_current_user)
+):
+    print(current_user)
+    return {
+        "email": current_user.email,
+        "full_name": current_user.full_name
+    }
 
 # @router.get("/auth/google/callback")
 # async def auth_google_callback(request: Request, db: Session = Depends(get_db)):

@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Optional
 
+from pydantic import EmailStr
+
 from app.databases.mongo_db import MongoEntry
 
 
@@ -12,6 +14,7 @@ class Message(MongoEntry):
 
 
 class Chat(MongoEntry):
+    user_email: Optional[str] = None
     title: str
     timestamp: datetime = datetime.now()
     num_messages: Optional[int] = 0
