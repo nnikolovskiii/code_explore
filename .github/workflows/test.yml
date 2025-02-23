@@ -1,0 +1,43 @@
+name: Build, Push, and Deploy
+
+on:
+  push:
+    branches:
+      - master  
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/remora-backend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/remora-backend:${{ github.sha }}
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH into server and update the container
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SSH_SERVER }}
+          script: |
+            cd docker
+            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/remora-backend:latest
+            sudo docker compose down
+            sudo docker compose up -d
