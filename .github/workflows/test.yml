@@ -27,6 +27,7 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/remora-backend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/remora-backend:${{ github.sha }}
   deploy:
+    needs: build-and-push
     runs-on: ubuntu-latest
     steps:
       - name: SSH into server and update the container
