@@ -16,10 +16,6 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SSH_SERVER }}
           script: |
-            # Pull the new image (replace 'myapp' with your image name)
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/myapp:${{ github.sha }}
-            # Stop and remove the old container
-            docker stop myapp || true
-            docker rm myapp || true
-            # Run the new container (adjust ports/volumes as needed)
-            docker run -d --name myapp -p 80:80 ${{ secrets.DOCKERHUB_USERNAME }}/myapp:${{ github.sha }}
+            echo "Testing SSH connection..." 
+            echo "Success! File created by GitHub Actions." > /tmp/github-actions-test.txt
+            cat /tmp/github-actions-test.txt
