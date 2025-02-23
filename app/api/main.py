@@ -1,8 +1,10 @@
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 import logging
 from app.api.routes import code, chat, websocket, test, collection_data, code_files, docs, links, process, flag, auth
+from app.container import container
 from app.databases.singletons import get_mongo_db, get_qdrant_db
 
 logging.basicConfig(level=logging.DEBUG)
@@ -12,7 +14,10 @@ logging.getLogger('pymongo').setLevel(logging.WARNING)
 async def lifespan(app: FastAPI):
     await get_mongo_db()
     await get_qdrant_db()
+    # bot = container.telegram_bot()
+    # asyncio.create_task(bot.start())
     yield
+    # await bot.stop()
     mdb = await get_mongo_db()
     mdb.client.close()
     qdb = await get_qdrant_db()
@@ -32,7 +37,7 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

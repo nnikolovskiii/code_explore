@@ -31,15 +31,22 @@ services:
       - qdrant_data:/qdrant/storage
 
   backend:
-    image: nnikolovskii/code_explore_backend
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: nnikolovskii/remora-backend
     depends_on:
       - mongodb
       - qdrant
     ports:
       - "5000:5000"
+
+  frontend:
+    image: nnikolovskii/remora-ai
+    depends_on:
+      - mongodb
+      - qdrant
+      - backend
+    ports:
+      - "4200:4200"
+
 
 
 

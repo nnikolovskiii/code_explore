@@ -91,16 +91,29 @@ class MongoDBDatabase:
             class_type: TypingType[T],
             doc_filter: Dict[str, Any] = None,
             collection_name: Optional[str] = None,
+            page_size: int = 100
     ) -> AsyncGenerator[T, None]:
         collection_name = class_type.__name__ if collection_name is None else collection_name
         collection = self.db[collection_name]
 
-        cursor = collection.find(doc_filter or {}, batch_size=1000)
+        last_id = None  # Marker for pagination
+        while True:
+            # Start with the provided filter and add pagination logic
+            query_filter = deepcopy(doc_filter) or {}
+            if last_id:
+                query_filter["_id"] = {"$gt": last_id}  # Fetch documents with _id > last_id
 
-        async for doc in cursor:
-            doc['id'] = str(doc.pop('_id'))
-            entry = class_type.model_validate(doc)
-            yield entry
+            # Fetch one page of results
+            docs = await collection.find(query_filter).sort("_id", 1).limit(page_size).to_list(length=page_size)
+
+            if not docs:
+                break  # Exit loop when no more documents are found
+
+            for doc in docs:
+                last_id = doc["_id"]  # Update the marker for the next page
+                doc['id'] = str(doc.pop('_id'))
+                entry = class_type.model_validate(doc)
+                yield entry
 
     async def stream_entries_dict(
             self,
@@ -109,12 +122,20 @@ class MongoDBDatabase:
     ) -> AsyncGenerator[Dict[str, any], None]:
         collection = self.db[collection_name]
 
-        cursor = collection.find(doc_filter or {}, batch_size=1000)
+        # Create protected cursor with explicit cleanup
+        cursor = collection.find(
+            doc_filter or {},
+            batch_size=500,
+            no_cursor_timeout=True  # Disable server-side timeout
+        )
 
-        async for doc in cursor:
-            doc['id'] = str(doc.pop('_id'))
-            yield doc
-
+        try:
+            async for doc in cursor:
+                doc['id'] = str(doc.pop('_id'))
+                yield doc
+        finally:
+            # Guaranteed resource cleanup
+            await cursor.close()
     async def get_entries_dict(
             self,
             collection_name: str,
@@ -261,28 +282,6 @@ class MongoDBDatabase:
 
         return result.modified_count > 0
 
-    async def update_entry(
-            self,
-            entity: MongoEntry,
-            collection_name: Optional[str] = None,
-            update: Optional[Dict[str, Any]] = None
-    ) -> bool:
-        collection_name = entity.__class__.__name__ if collection_name is None else collection_name
-        collection = self.db[collection_name]
-
-        entity_dict = entity.model_dump()
-        if "id" in entity_dict:
-            entity_dict.pop("id")
-
-        if update:
-            entity_dict.update(update)
-
-        result = await collection.update_one(
-            {"_id": ObjectId(entity.id)},
-            {"$set": entity_dict}
-        )
-
-        return result.modified_count > 0
 
     async def delete_collection(self, collection_name: str) -> bool:
         if collection_name not in await self.db.list_collection_names():

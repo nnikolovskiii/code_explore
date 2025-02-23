@@ -74,7 +74,7 @@ async def login(
     if user.is_google_auth:
         raise HTTPException(status_code=400, detail="Use Google login")
 
-    expires = datetime.now(timezone.utc) + timedelta(minutes=30)
+    expires = datetime.now(timezone.utc) + timedelta(minutes=60*24)
     jwt_token = jwt.encode(
         {"sub": user.email, "exp": expires},
         secret,
@@ -87,7 +87,7 @@ async def login(
         httponly=True,
         # secure=True,  # Requires HTTPS in production
         samesite="lax",
-        max_age=1800
+        max_age=60*60*24,
     )
 
     return {

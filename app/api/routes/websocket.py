@@ -1,8 +1,10 @@
+import datetime
 from typing import Annotated
 import asyncio
 
 from bson import ObjectId
 from fastapi import WebSocket
+from pydantic_ai.messages import ModelRequest, SystemPromptPart, UserPromptPart, ModelResponse, TextPart
 
 from app.api.routes.auth import get_current_user_websocket
 from app.auth.models.user import User
@@ -16,7 +18,6 @@ from app.databases.singletons import get_mongo_db
 from app.llms.models import StreamChatLLM
 from app.models.flag import Flag
 import json
-
 
 logging.basicConfig(level=logging.DEBUG)
 from fastapi import APIRouter, Depends
@@ -41,6 +42,8 @@ async def websocket_endpoint(
             message, chat_id = data
 
             history = await chat_service.get_history_from_chat(chat_id=chat_id)
+            message_history = convert_history(history)
+            # print(message_history)
             if chat_id is None:
                 chat_id = await chat_service.save_user_chat(user_message=message, user_email=current_user.email)
 
@@ -59,8 +62,8 @@ async def websocket_endpoint(
             )
 
             active_model = await chat_service.get_active_model(class_type=StreamChatLLM)
-            print(active_model.chat_model_config)
-            print(active_model.chat_api)
+            # print(active_model.chat_model_config)
+            # print(active_model.chat_api)
 
             response = ""
 
@@ -102,3 +105,36 @@ async def websocket_endpoint(
             print(f"Error: {e}")
             break
 
+
+def convert_history(history):
+    if history is None or len(history) == 0:
+        return None
+
+    li = []
+    message_request = get_system_messages()
+    message_request.parts.append(
+        UserPromptPart(content=history[0]["content"], timestamp=datetime.datetime.now(datetime.UTC),
+                       part_kind='user-prompt'))
+    li.append(message_request)
+
+    for message in history[1:]:
+        if message["role"] == "user":
+            li.append(ModelRequest(
+                parts=[UserPromptPart(
+                    content=message["content"],
+                    timestamp=datetime.datetime.now(datetime.UTC), part_kind='user-prompt')],
+                kind='request'))
+
+        elif message["role"] == "assistant":
+            li.append(ModelResponse(
+                parts=[
+                    TextPart(
+                        content=message["content"],
+                        part_kind='text',
+                    )
+                ],
+                timestamp=datetime.datetime.now(datetime.UTC),
+                kind='response',
+            ), )
+
+    return li

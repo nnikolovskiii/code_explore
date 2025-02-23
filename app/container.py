@@ -26,15 +26,16 @@ class Container(containers.DeclarativeContainer):
 
     fernet = providers.Singleton(create_fernet)
 
-    telegram_bot = providers.Singleton(
-        TelegramBot
-    )
-
     chat_service = providers.Factory(
         ChatService,
         llm_factory=llm_factory,
         mdb=mdb,
         fernet=fernet
+    )
+
+    telegram_bot = providers.Singleton(
+        TelegramBot,
+        chat_service=chat_service
     )
 
     user_service = providers.Factory(

@@ -179,7 +179,7 @@ class ChatService:
             for i in range(len(user_messages)):
                 history.append({"role": "user", "content": user_messages[i].content})
                 if i < len(assistant_messages):
-                    history.append({"role": "user", "content": assistant_messages[i].content})
+                    history.append({"role": "assistant", "content": assistant_messages[i].content})
 
         return history
 
@@ -188,7 +188,7 @@ class ChatService:
             user_message: str,
             user_email: str,
     ) -> str:
-        chat_llm = await self.get_model(model_name="deepseek-chat", class_type=ChatLLM)
+        chat_llm = await self.get_model(model_name="gpt-4o-mini", class_type=ChatLLM)
         chat_name_pipeline = ChatTitlePipeline(chat_llm=chat_llm)
         response = await chat_name_pipeline.execute(message=user_message)
 

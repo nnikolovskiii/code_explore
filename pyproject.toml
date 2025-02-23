@@ -40,7 +40,6 @@ cohere = "^5.13.11"
 dependency-injector = "^4.45.0"
 python-telegram-bot = "^21.10"
 passlib = "^1.7.4"
-jose = "^1.0.0"
 pytest = "^8.3.4"
 
 

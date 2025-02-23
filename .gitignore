@@ -23,5 +23,3 @@ data/*
 .mypy_cache
 
 .venv
-/poetry.toml
-**/__init__.py
