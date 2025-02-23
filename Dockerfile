@@ -32,6 +32,7 @@ ENV VIRTUAL_ENV=/.venv \
 # Copy the virtual environment from the builder stage
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
+COPY ./app/.env ./app/.env
 # Copy the application code
 COPY ./app ./app
 
